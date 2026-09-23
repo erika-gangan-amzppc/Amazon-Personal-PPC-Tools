@@ -225,15 +225,26 @@ const App = (function(){
     s.className = "status-line" + (isErr ? " err" : "");
   }
 
+  function setBtnLoading(btn, loading, loadingLabel){
+    if(loading){
+      if(!btn.dataset.label) btn.dataset.label = btn.textContent;
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>' + (loadingLabel || "Working…");
+    } else {
+      btn.disabled = false;
+      btn.textContent = btn.dataset.label || btn.textContent;
+    }
+  }
+
   async function generate(){
     const btn = document.getElementById("btnGenerate");
-    btn.disabled = true;
+    setBtnLoading(btn, true, "Parsing…");
     setStatus("Parsing bulk sheet…");
     try{
       const bulk = await BulkParser.parse(files.bulk);
       if(!bulk.campaigns.length){
         setStatus("No campaign rows found in the bulk file — check the sheet names match Amazon's Bulk 2.0 export.", true);
-        btn.disabled = false; return;
+        setBtnLoading(btn, false); return;
       }
       const nameMap = Rules.campaignNameToAdTypeMap(bulk.campaigns);
       setStatus("Parsing search term report…");
@@ -245,7 +256,7 @@ const App = (function(){
       console.error(err);
       setStatus("Something went wrong while parsing: " + err.message, true);
     }
-    btn.disabled = false;
+    setBtnLoading(btn, false);
   }
 
   function init(){
