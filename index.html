@@ -33,13 +33,25 @@
     transition:border-color .15s, transform .1s;
   }
   .tool:hover{border-color:var(--accent); transform:translateY(-1px);}
-  .tool h2{font-size:16px; margin:0 0 4px; color:var(--accent);}
+  .tool.planned{cursor:default; opacity:.72;}
+  .tool.planned:hover{border-color:var(--border); transform:none;}
+  .tool-head{display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:4px;}
+  .tool h2{font-size:16px; margin:0; color:var(--accent);}
+  .tool.planned h2{color:var(--text);}
   .tool p{margin:0; font-size:13.5px; color:var(--text-muted);}
   .tool .tags{margin-top:8px;}
   .tag{
     display:inline-block; font-size:10.5px; padding:2px 8px; border-radius:999px;
     background:var(--accent-soft); color:var(--accent); font-weight:600; margin-right:6px;
   }
+  .status{
+    flex:0 0 auto; font-size:10.5px; padding:2px 8px; border-radius:999px; font-weight:700;
+    text-transform:uppercase; letter-spacing:.03em;
+  }
+  .status.live{background:var(--accent-soft); color:var(--accent);}
+  .status.planned{background:#eee; color:var(--text-muted);}
+
+  h3.group{font-size:13px; text-transform:uppercase; letter-spacing:.04em; color:var(--text-muted); margin:32px 0 10px;}
 
   footer{text-align:center; color:var(--text-muted); font-size:12px; padding:30px 0 10px;}
 </style>
@@ -52,24 +64,63 @@
   <ul class="tool-list">
     <li>
       <a class="tool" href="ppc-multi-report-audit/">
-        <h2>Multi-Report PPC Audit</h2>
+        <div class="tool-head"><h2>Multi-Report PPC Audit</h2><span class="status live">Live</span></div>
         <p>Bulk sheet + search term report + business report → account overview, ad type / targeting / match type breakdowns, harvest &amp; wasted-spend findings, untargeted ASIN opportunities, and dynamic recommendations.</p>
         <div class="tags"><span class="tag">bulk sheet</span><span class="tag">search term report</span><span class="tag">business report</span></div>
       </a>
     </li>
     <li>
       <a class="tool" href="negation-tool/">
-        <h2>Negation Tool</h2>
+        <div class="tool-head"><h2>Negation Tool</h2><span class="status live">Live</span></div>
         <p>Bulk sheet + search term report → the back half of the harvest waterfall: terms already harvested elsewhere that still need negating in their discovery campaign, plus plain wasted-spend negatives. Checks existing negatives first so nothing gets recommended twice.</p>
         <div class="tags"><span class="tag">bulk sheet</span><span class="tag">search term report</span></div>
       </a>
     </li>
     <li>
       <a class="tool" href="harvest-tool/">
-        <h2>Harvest Tool</h2>
+        <div class="tool-head"><h2>Harvest Tool</h2><span class="status live">Live</span></div>
         <p>Bulk sheet + search term report → two-way harvest: promote proven terms to their own Exact keyword, or isolate proven Broad/Phrase terms into a dedicated keyword at the same match type. Exports a ready-to-paste new-keyword CSV.</p>
         <div class="tags"><span class="tag">bulk sheet</span><span class="tag">search term report</span></div>
       </a>
+    </li>
+  </ul>
+
+  <h3 class="group">Planned</h3>
+  <ul class="tool-list">
+    <li>
+      <div class="tool planned">
+        <div class="tool-head"><h2>SQP → Bulk</h2><span class="status planned">Planned</span></div>
+        <p>Search Query Performance report → finds search queries with strong organic/market performance that have no matching keyword or target in the bulk file yet — real demand not captured by PPC at all.</p>
+        <div class="tags"><span class="tag">SQP report</span><span class="tag">bulk sheet</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="tool planned">
+        <div class="tool-head"><h2>SQP + STR Cross-Check</h2><span class="status planned">Planned</span></div>
+        <p>Search Query Performance report + search term report → compares your own PPC performance against total market demand for the same query, to separate "nobody converts on this" from "the market converts fine, my ad underperforms."</p>
+        <div class="tags"><span class="tag">SQP report</span><span class="tag">search term report</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="tool planned">
+        <div class="tool-head"><h2>Bid Optimization</h2><span class="status planned">Planned</span></div>
+        <p>Bulk sheet → recommends bid increases/decreases with selectable strategy filters (ACOS-based, CVR-based, RPC-based, margin-based) rather than one fixed formula.</p>
+        <div class="tags"><span class="tag">bulk sheet</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="tool planned">
+        <div class="tool-head"><h2>Placement Optimization</h2><span class="status planned">Planned</span></div>
+        <p>Bulk sheet (placement rows) → finds which placement (Top of Search, Rest of Search, Product Pages, Amazon Business) converts best per campaign and recommends a specific % bid adjustment based on the ACOS/CVR gap.</p>
+        <div class="tags"><span class="tag">bulk sheet</span></div>
+      </div>
+    </li>
+    <li>
+      <div class="tool planned">
+        <div class="tool-head"><h2>Budget Optimization</h2><span class="status planned">Planned</span></div>
+        <p>Bulk sheet → flags campaigns capping out early that are efficient (increase), campaigns with excess budget and poor ACOS (cut), and reallocation candidates between the two — the gap Amazon's native budget rules don't fill (increase-only).</p>
+        <div class="tags"><span class="tag">bulk sheet</span></div>
+      </div>
     </li>
   </ul>
 </div>
