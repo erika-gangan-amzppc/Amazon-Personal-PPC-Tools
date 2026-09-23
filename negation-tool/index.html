@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PPC Negation Tool</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="../shared/ppc-lib.js"></script>
+<style>
+  :root{
+    --bg:#f5f7fa; --surface:#ffffff; --border:#e2e6ec; --text:#1b2430; --text-muted:#5b6472;
+    --accent:#2f6f5e; --accent-soft:#e6f0ec; --bad:#b3452c; --warn:#a6791f;
+    --radius:10px; --shadow:0 1px 3px rgba(20,30,40,.08), 0 1px 2px rgba(20,30,40,.06);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0; background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; line-height:1.45;}
+  .wrap{max-width:1180px; margin:0 auto; padding:24px 20px 80px;}
+  header.top{background:var(--surface); border-bottom:1px solid var(--border); padding:18px 20px;}
+  header.top .wrap{padding:0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+  header.top h1{font-size:18px; margin:0;}
+  header.top .tag{color:var(--text-muted); font-size:13px;}
+  h2.section-title{font-size:20px; margin:40px 0 4px; display:flex; align-items:center; gap:10px;}
+  p.section-sub{color:var(--text-muted); font-size:13.5px; margin:0 0 16px;}
+  .card{background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); box-shadow:var(--shadow); padding:20px;}
+  .card + .card{margin-top:16px;}
+  .upload-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; margin-top:16px;}
+  .drop{border:1.5px dashed var(--border); border-radius:var(--radius); padding:18px; background:var(--bg); cursor:pointer; transition:border-color .15s, background .15s; text-align:left;}
+  .drop:hover, .drop.drag{border-color:var(--accent); background:var(--accent-soft);}
+  .drop h3{margin:0 0 4px; font-size:14.5px;}
+  .drop p{margin:0; font-size:12.5px; color:var(--text-muted);}
+  .drop .file-state{margin-top:8px; font-size:12.5px; font-weight:600;}
+  .drop input[type=file]{display:none;}
+  .required-badge{display:inline-block; font-size:10.5px; padding:1px 6px; border-radius:999px; background:var(--accent-soft); color:var(--accent); margin-left:6px; font-weight:600;}
+  button.primary{background:var(--accent); color:#fff; border:none; border-radius:8px; padding:12px 22px; font-size:15px; font-weight:600; cursor:pointer; margin-top:18px;}
+  button.primary:disabled{opacity:.45; cursor:not-allowed;}
+  button.primary:hover:not(:disabled){filter:brightness(1.06);}
+  button.secondary{background:var(--surface); color:var(--accent); border:1px solid var(--accent); border-radius:8px; padding:7px 14px; font-size:12.5px; font-weight:600; cursor:pointer;}
+  .status-line{font-size:12.5px; color:var(--text-muted); margin-top:10px; white-space:pre-line;}
+  .status-line.err{color:var(--bad);}
+  table{width:100%; border-collapse:collapse; font-size:13.5px; margin-top:4px;}
+  th,td{padding:8px 10px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap;}
+  th:first-child, td:first-child{text-align:left; white-space:normal;}
+  thead th{color:var(--text-muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.02em; border-bottom:2px solid var(--border);}
+  tbody tr:hover{background:var(--bg);}
+  .table-scroll{overflow-x:auto;}
+  .insight{background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:6px; padding:10px 14px; font-size:13.5px; margin-top:12px;}
+  .insight.warn{background:#faf3e2; border-left-color:var(--warn);}
+  .empty-state{color:var(--text-muted); font-size:13.5px; font-style:italic; padding:10px 0;}
+  .pill{display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px; font-weight:600; background:var(--accent-soft); color:var(--accent);}
+  .kpi-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px;}
+  .kpi{background:var(--bg); border:1px solid var(--border); border-radius:9px; padding:14px; text-align:center;}
+  .kpi .label{font-size:11.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em;}
+  .kpi .value{font-size:22px; font-weight:700; margin-top:4px;}
+  .section-actions{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;}
+  footer{text-align:center; color:var(--text-muted); font-size:12px; padding:30px 0 10px;}
+  #reportRoot{display:none;}
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1>PPC Negation Tool</h1>
+    <span class="tag">Bulk sheet + Search term report — parsed entirely in your browser</span>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="card upload-card">
+    <h2 class="section-title" style="margin-top:0;">1. Upload reports</h2>
+    <p class="section-sub">Nothing leaves your browser — all parsing happens locally.</p>
+    <div class="upload-grid">
+      <label class="drop" id="dropBulk">
+        <h3>Bulk sheet <span class="required-badge">required</span></h3>
+        <p>.xlsx bulk file — used to find existing Exact keywords and existing negatives, so nothing gets recommended twice.</p>
+        <div class="file-state" id="stateBulk">No file selected</div>
+        <input type="file" id="fileBulk" accept=".xlsx,.xls">
+      </label>
+      <label class="drop" id="dropSearchTerm">
+        <h3>Search term report <span class="required-badge">required</span></h3>
+        <p>.xlsx or .csv — customer search term performance (SP and/or SB).</p>
+        <div class="file-state" id="stateSearchTerm">No file selected</div>
+        <input type="file" id="fileSearchTerm" accept=".xlsx,.xls,.csv">
+      </label>
+    </div>
+    <button class="primary" id="btnGenerate" disabled>Find negation candidates</button>
+    <div class="status-line" id="statusLine"></div>
+  </div>
+
+  <div id="reportRoot"></div>
+  <footer>Generated locally — no data was uploaded to any server.</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+const {Utils, Cols, Metrics, BulkParser, SearchTermParser, Rules, Render} = window.PPC;
+
+/* ---------------- ANALYSIS ---------------- */
+const Analysis = (function(){
+
+  // Back half of the harvest waterfall: a search term already has its own
+  // dedicated Exact keyword somewhere in the account, but this row (in a
+  // broader Auto/Broad/Phrase campaign) hasn't been negated yet -> still
+  // competing with its own harvested keyword and re-learning the term.
+  function alreadyHarvestedNegationCandidates(bulk, stRows){
+    const existingExact = Rules.existingExactTexts(bulk);
+    const negatedIndex = Rules.buildNegatedIndex(bulk);
+    const campaignIdByName = Rules.campaignIdByName(bulk.campaigns);
+
+    const out = [];
+    for(const r of stRows){
+      if(r.matchType === "EXACT") continue; // this row IS the exact target, nothing to negate against itself
+      if(!existingExact.has(r.searchTerm.toLowerCase())) continue; // not harvested anywhere -- not this tool's job
+      const campaignId = campaignIdByName[r.campaignName];
+      if(negatedIndex.isNegated(campaignId, r.adGroupName, r.searchTerm)) continue; // already negated
+      out.push(r);
+    }
+    return out.sort((a,b)=>b.spend-a.spend);
+  }
+
+  // Plain wasted-spend negation: zero orders, real spend, not already negated.
+  function wastedSpendNegationCandidates(bulk, stRows){
+    const negatedIndex = Rules.buildNegatedIndex(bulk);
+    const campaignIdByName = Rules.campaignIdByName(bulk.campaigns);
+    return Rules.wastedSpend(stRows).filter(r=>{
+      const campaignId = campaignIdByName[r.campaignName];
+      return !negatedIndex.isNegated(campaignId, r.adGroupName, r.searchTerm);
+    });
+  }
+
+  function negativesSummary(bulk){
+    const t = Metrics.empty();
+    return {
+      totalNegativeKeywords: (bulk.negatives||[]).length,
+      totalNegativeTargets: (bulk.negativeTargets||[]).length
+    };
+  }
+
+  return {alreadyHarvestedNegationCandidates, wastedSpendNegationCandidates, negativesSummary};
+})();
+
+/* ---------------- RENDER ---------------- */
+function renderReport(bulk, stRows){
+  const root = document.getElementById("reportRoot");
+  root.innerHTML = "";
+  root.style.display = "block";
+
+  const harvested = Analysis.alreadyHarvestedNegationCandidates(bulk, stRows);
+  const wasted = Analysis.wastedSpendNegationCandidates(bulk, stRows);
+  const existingNeg = Analysis.negativesSummary(bulk);
+
+  const summaryCard = Render.el("div",{class:"card"});
+  Render.sectionHeader(summaryCard, "Data loaded", "");
+  const grid = Render.el("div",{class:"kpi-grid"});
+  grid.appendChild(Render.kpiTile("Campaigns", Utils.fmtInt(bulk.campaigns.length)));
+  grid.appendChild(Render.kpiTile("Search term rows", Utils.fmtInt(stRows.length)));
+  grid.appendChild(Render.kpiTile("Existing negative keywords", Utils.fmtInt(existingNeg.totalNegativeKeywords)));
+  grid.appendChild(Render.kpiTile("Existing negative targets", Utils.fmtInt(existingNeg.totalNegativeTargets)));
+  summaryCard.appendChild(grid);
+  root.appendChild(summaryCard);
+
+  const harvestCard = Render.el("div",{class:"card"});
+  Render.sectionHeader(harvestCard, "Already harvested elsewhere — negate here (" + harvested.length + ")",
+    "These search terms already have their own dedicated Exact keyword somewhere in the account, but this broader (Auto/Broad/Phrase) row hasn't been negated yet — it's still competing with its own harvested keyword and re-learning the term. Recommended: Negative Exact, scoped to this campaign.");
+  if(harvested.length){
+    harvestCard.appendChild(Render.table(
+      ["Search term","Campaign","Ad group","Current match type","Impressions","Clicks","Spend"],
+      harvested.slice(0,50).map(r=>[r.searchTerm, r.campaignName, r.adGroupName, r.matchType,
+        Utils.fmtInt(r.impressions), Utils.fmtInt(r.clicks), Utils.fmtMoney(r.spend)])
+    ));
+    if(harvested.length>50) harvestCard.appendChild(Render.el("p",{class:"section-sub",html:"Showing top 50 of "+harvested.length+" by spend."}));
+  } else {
+    harvestCard.appendChild(Render.el("div",{class:"empty-state",html:"Nothing found — every harvested term is already negated in its discovery campaign, or nothing has been harvested yet."}));
+  }
+  root.appendChild(harvestCard);
+
+  const wasteCard = Render.el("div",{class:"card"});
+  Render.sectionHeader(wasteCard, "Wasted spend — negate (" + wasted.length + ")",
+    "Zero orders, real spend, not already negated. Judged on dollars spent, not click volume. Recommended: Negative Exact for the specific term.");
+  if(wasted.length){
+    const total = wasted.reduce((s,r)=>s+r.spend,0);
+    wasteCard.appendChild(Render.el("p",{class:"section-sub",html:"Total: "+Utils.fmtMoney(total)}));
+    wasteCard.appendChild(Render.table(
+      ["Search term","Campaign","Ad group","Match type","Impressions","Clicks","Spend"],
+      wasted.slice(0,50).map(r=>[r.searchTerm, r.campaignName, r.adGroupName, r.matchType,
+        Utils.fmtInt(r.impressions), Utils.fmtInt(r.clicks), Utils.fmtMoney(r.spend)])
+    ));
+    if(wasted.length>50) wasteCard.appendChild(Render.el("p",{class:"section-sub",html:"Showing top 50 of "+wasted.length+" by spend."}));
+  } else {
+    wasteCard.appendChild(Render.el("div",{class:"empty-state",html:"No wasted spend found that isn't already negated."}));
+  }
+  root.appendChild(wasteCard);
+
+  const all = [...harvested, ...wasted];
+  const exportCard = Render.el("div",{class:"card"});
+  const actions = Render.el("div",{class:"section-actions"});
+  actions.appendChild(Render.el("h2",{class:"section-title", style:"margin:0;", html:"Export"}));
+  const btn = Render.el("button",{class:"secondary"},[]);
+  btn.textContent = "Download negative keyword CSV (" + all.length + " rows)";
+  btn.addEventListener("click", ()=>downloadCSV(all));
+  actions.appendChild(btn);
+  exportCard.appendChild(actions);
+  exportCard.appendChild(Render.el("p",{class:"section-sub", html:"Campaign, Ad Group, Negative Exact keyword text — ready to paste into a bulk upload sheet."}));
+  root.appendChild(exportCard);
+
+  root.scrollIntoView({behavior:"smooth"});
+}
+
+function downloadCSV(rows){
+  const header = ["Campaign Name","Ad Group Name","Match Type","Keyword Text"];
+  const lines = [header.join(",")];
+  const seen = new Set();
+  rows.forEach(r=>{
+    const key = r.campaignName+"||"+r.adGroupName+"||"+r.searchTerm.toLowerCase();
+    if(seen.has(key)) return;
+    seen.add(key);
+    const cells = [r.campaignName, r.adGroupName, "Negative Exact", r.searchTerm].map(c=>'"'+String(c).replace(/"/g,'""')+'"');
+    lines.push(cells.join(","));
+  });
+  const blob = new Blob([lines.join("\n")], {type:"text/csv"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = "negative-keywords.csv";
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+/* ---------------- APP ---------------- */
+const App = (function(){
+  const files = {bulk:null, searchTerm:null};
+
+  function bindDrop(dropId, inputId, stateId, fileKey){
+    const drop = document.getElementById(dropId);
+    const input = document.getElementById(inputId);
+    const state = document.getElementById(stateId);
+    drop.addEventListener("click", ()=>input.click());
+    drop.addEventListener("dragover", e=>{ e.preventDefault(); drop.classList.add("drag"); });
+    drop.addEventListener("dragleave", ()=>drop.classList.remove("drag"));
+    drop.addEventListener("drop", e=>{
+      e.preventDefault(); drop.classList.remove("drag");
+      if(e.dataTransfer.files.length){ input.files = e.dataTransfer.files; handleFile(); }
+    });
+    input.addEventListener("change", handleFile);
+    function handleFile(){
+      const f = input.files[0];
+      files[fileKey] = f || null;
+      state.textContent = f ? (f.name + " — " + (f.size/1024).toFixed(0) + " KB") : "No file selected";
+      state.style.color = f ? "var(--accent)" : "var(--text-muted)";
+      checkReady();
+    }
+  }
+
+  function checkReady(){
+    document.getElementById("btnGenerate").disabled = !(files.bulk && files.searchTerm);
+  }
+
+  function setStatus(msg, isErr){
+    const s = document.getElementById("statusLine");
+    s.textContent = msg;
+    s.className = "status-line" + (isErr ? " err" : "");
+  }
+
+  async function generate(){
+    const btn = document.getElementById("btnGenerate");
+    btn.disabled = true;
+    setStatus("Parsing bulk sheet…");
+    try{
+      const bulk = await BulkParser.parse(files.bulk);
+      if(!bulk.campaigns.length){
+        setStatus("No campaign rows found in the bulk file — check the sheet names match Amazon's Bulk 2.0 export.", true);
+        btn.disabled = false; return;
+      }
+      const nameMap = Rules.campaignNameToAdTypeMap(bulk.campaigns);
+      setStatus("Parsing search term report…");
+      const stRows = await SearchTermParser.parse(files.searchTerm, nameMap);
+      setStatus("Finding negation candidates…");
+      renderReport(bulk, stRows);
+      setStatus("Done.");
+    } catch(err){
+      console.error(err);
+      setStatus("Something went wrong while parsing: " + err.message, true);
+    }
+    btn.disabled = false;
+  }
+
+  function init(){
+    bindDrop("dropBulk","fileBulk","stateBulk","bulk");
+    bindDrop("dropSearchTerm","fileSearchTerm","stateSearchTerm","searchTerm");
+    document.getElementById("btnGenerate").addEventListener("click", generate);
+  }
+
+  return {init};
+})();
+
+document.addEventListener("DOMContentLoaded", App.init);
+})();
+</script>
+</body>
+</html>
