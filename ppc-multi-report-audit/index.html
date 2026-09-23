@@ -1,0 +1,1224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PPC Multi-Report Audit</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  /* ============ THEME (swap these to match brand) ============ */
+  :root{
+    --bg:#f5f7fa;
+    --surface:#ffffff;
+    --border:#e2e6ec;
+    --text:#1b2430;
+    --text-muted:#5b6472;
+    --accent:#2f6f5e;      /* primary accent */
+    --accent-soft:#e6f0ec;
+    --good:#2f6f5e;
+    --bad:#b3452c;
+    --warn:#a6791f;
+    --chart-1:#2f6f5e;
+    --chart-2:#e0a458;
+    --chart-3:#6f8fb0;
+    --chart-4:#b3452c;
+    --chart-5:#8a6fb0;
+    --radius:10px;
+    --shadow:0 1px 3px rgba(20,30,40,.08), 0 1px 2px rgba(20,30,40,.06);
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    line-height:1.45;
+  }
+  .wrap{max-width:1180px; margin:0 auto; padding:24px 20px 80px;}
+  header.top{
+    background:var(--surface); border-bottom:1px solid var(--border);
+    padding:18px 20px;
+  }
+  header.top .wrap{padding:0; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;}
+  header.top h1{font-size:18px; margin:0;}
+  header.top .tag{color:var(--text-muted); font-size:13px;}
+
+  h2.section-title{
+    font-size:20px; margin:40px 0 4px;
+    display:flex; align-items:center; gap:10px;
+  }
+  p.section-sub{color:var(--text-muted); font-size:13.5px; margin:0 0 16px;}
+
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+    box-shadow:var(--shadow); padding:20px;
+  }
+  .card + .card{margin-top:16px;}
+
+  /* Upload panel */
+  .upload-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:14px; margin-top:16px;}
+  .drop{
+    border:1.5px dashed var(--border); border-radius:var(--radius); padding:18px;
+    background:var(--bg); cursor:pointer; transition:border-color .15s, background .15s;
+    text-align:left;
+  }
+  .drop:hover, .drop.drag{border-color:var(--accent); background:var(--accent-soft);}
+  .drop h3{margin:0 0 4px; font-size:14.5px;}
+  .drop p{margin:0; font-size:12.5px; color:var(--text-muted);}
+  .drop .file-state{margin-top:8px; font-size:12.5px; font-weight:600;}
+  .drop input[type=file]{display:none;}
+  .required-badge{display:inline-block; font-size:10.5px; padding:1px 6px; border-radius:999px; background:var(--accent-soft); color:var(--accent); margin-left:6px; font-weight:600;}
+  .optional-badge{display:inline-block; font-size:10.5px; padding:1px 6px; border-radius:999px; background:#eee; color:var(--text-muted); margin-left:6px; font-weight:600;}
+
+  .field-row{display:flex; gap:14px; margin-top:14px; flex-wrap:wrap;}
+  .field{flex:1; min-width:180px;}
+  .field label{display:block; font-size:12.5px; color:var(--text-muted); margin-bottom:4px; font-weight:600;}
+  .field input{
+    width:100%; padding:9px 10px; border:1px solid var(--border); border-radius:8px; font-size:14px;
+    background:var(--surface); color:var(--text);
+  }
+
+  button.primary{
+    background:var(--accent); color:#fff; border:none; border-radius:8px;
+    padding:12px 22px; font-size:15px; font-weight:600; cursor:pointer; margin-top:18px;
+  }
+  button.primary:disabled{opacity:.45; cursor:not-allowed;}
+  button.primary:hover:not(:disabled){filter:brightness(1.06);}
+
+  .status-line{font-size:12.5px; color:var(--text-muted); margin-top:10px; white-space:pre-line;}
+  .status-line.err{color:var(--bad);}
+
+  /* KPI tiles */
+  .kpi-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:12px;}
+  .kpi{
+    background:var(--bg); border:1px solid var(--border); border-radius:9px; padding:14px;
+    text-align:center;
+  }
+  .kpi .label{font-size:11.5px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.03em;}
+  .kpi .value{font-size:22px; font-weight:700; margin-top:4px;}
+  .kpi .sub{font-size:11px; color:var(--text-muted); margin-top:2px;}
+
+  table{width:100%; border-collapse:collapse; font-size:13.5px; margin-top:4px;}
+  th,td{padding:8px 10px; text-align:right; border-bottom:1px solid var(--border); white-space:nowrap;}
+  th:first-child, td:first-child{text-align:left; white-space:normal;}
+  thead th{color:var(--text-muted); font-weight:600; font-size:12px; text-transform:uppercase; letter-spacing:.02em; border-bottom:2px solid var(--border);}
+  tbody tr:hover{background:var(--bg);}
+  tfoot td{font-weight:700; border-top:2px solid var(--border); border-bottom:none;}
+  .table-scroll{overflow-x:auto;}
+
+  .two-col{display:grid; grid-template-columns:1fr 1fr; gap:20px;}
+  @media (max-width:760px){.two-col{grid-template-columns:1fr;}}
+  .chart-box{position:relative; height:230px;}
+
+  .insight{
+    background:var(--accent-soft); border-left:3px solid var(--accent); border-radius:6px;
+    padding:10px 14px; font-size:13.5px; margin-top:12px;
+  }
+  .insight.bad{background:#f8ece7; border-left-color:var(--bad);}
+  .insight.warn{background:#faf3e2; border-left-color:var(--warn);}
+  .insight ul{margin:4px 0 0; padding-left:18px;}
+  .insight li{margin-bottom:4px;}
+
+  .pill{display:inline-block; font-size:11px; padding:2px 8px; border-radius:999px; font-weight:600;}
+  .pill.ok{background:var(--accent-soft); color:var(--accent);}
+  .pill.bad{background:#f8ece7; color:var(--bad);}
+  .pill.warn{background:#faf3e2; color:var(--warn);}
+
+  .empty-state{color:var(--text-muted); font-size:13.5px; font-style:italic; padding:10px 0;}
+  .missing-data{
+    border:1px dashed var(--border); border-radius:8px; padding:14px; color:var(--text-muted); font-size:13.5px;
+  }
+
+  .rec-list{list-style:none; margin:0; padding:0;}
+  .rec-list li{
+    display:flex; gap:10px; padding:12px 0; border-bottom:1px solid var(--border);
+  }
+  .rec-list li:last-child{border-bottom:none;}
+  .rec-num{
+    flex:0 0 26px; height:26px; border-radius:50%; background:var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:12.5px; font-weight:700;
+  }
+  .rec-body b{display:block; font-size:14px; margin-bottom:2px;}
+  .rec-body span{font-size:13px; color:var(--text-muted);}
+
+  footer{text-align:center; color:var(--text-muted); font-size:12px; padding:30px 0 10px;}
+
+  #reportRoot{display:none;}
+
+  @media print{
+    header.top, .upload-card, .no-print{display:none !important;}
+    body{background:#fff;}
+    .card{box-shadow:none; border:1px solid #ccc; break-inside:avoid;}
+    h2.section-title{break-before:page;}
+  }
+</style>
+</head>
+<body>
+
+<header class="top">
+  <div class="wrap">
+    <h1>PPC Multi-Report Audit</h1>
+    <span class="tag">Bulk sheet + Search Term report + Business report — parsed entirely in your browser</span>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="card upload-card">
+    <h2 class="section-title" style="margin-top:0;">1. Upload reports</h2>
+    <p class="section-sub">Nothing leaves your browser — all parsing happens locally.</p>
+
+    <div class="upload-grid">
+      <label class="drop" id="dropBulk">
+        <h3>Bulk sheet <span class="required-badge">required</span></h3>
+        <p>.xlsx bulk file — Sponsored Products / Brands / Display campaign sheets.</p>
+        <div class="file-state" id="stateBulk">No file selected</div>
+        <input type="file" id="fileBulk" accept=".xlsx,.xls">
+      </label>
+
+      <label class="drop" id="dropSearchTerm">
+        <h3>Search term report <span class="required-badge">required</span></h3>
+        <p>.xlsx or .csv — customer search term performance (SP and/or SB).</p>
+        <div class="file-state" id="stateSearchTerm">No file selected</div>
+        <input type="file" id="fileSearchTerm" accept=".xlsx,.xls,.csv">
+      </label>
+
+      <label class="drop" id="dropBusiness">
+        <h3>Business report <span class="required-badge">required</span></h3>
+        <p>.csv — Detail Page Sales and Traffic by Child ASIN.</p>
+        <div class="file-state" id="stateBusiness">No file selected</div>
+        <input type="file" id="fileBusiness" accept=".csv">
+      </label>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="brandName">Brand name</label>
+        <input type="text" id="brandName" placeholder="e.g. Acme Tools">
+      </div>
+      <div class="field">
+        <label for="marketplace">Currency symbol (optional override)</label>
+        <input type="text" id="currencyOverride" placeholder="auto-detected from files">
+      </div>
+    </div>
+
+    <button class="primary" id="btnGenerate" disabled>Generate audit</button>
+    <div class="status-line" id="statusLine"></div>
+  </div>
+
+  <div id="reportRoot"></div>
+
+  <footer>Generated locally — no data was uploaded to any server.</footer>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* =====================================================================
+   UTILS — number parsing, currency detection, formatting
+===================================================================== */
+const Utils = (function(){
+
+  // Detects a currency symbol in a raw string, if any (e.g. "$1,234.50" -> "$")
+  function detectCurrencySymbol(str){
+    if(typeof str !== "string") return null;
+    const m = str.match(/[$£€¥₹]/);
+    return m ? m[0] : null;
+  }
+
+  // Robust locale-agnostic number parser.
+  // Handles: "$1,234.50", "£12.50", "12,50 €", "1.234,50", "(123.45)" negative, "45%", "1.2E+03"
+  function parseNumber(raw){
+    if(raw === null || raw === undefined) return null;
+    if(typeof raw === "number") return isFinite(raw) ? raw : null;
+    let s = String(raw).trim();
+    if(s === "" || s === "-" || s.toLowerCase() === "n/a") return null;
+
+    let negative = false;
+    if(/^\(.*\)$/.test(s)){ negative = true; s = s.slice(1,-1); }
+    if(s.startsWith("-")){ negative = true; s = s.slice(1); }
+
+    const isPercent = /%\s*$/.test(s);
+    s = s.replace(/[$£€¥₹%\s]/g,"");
+
+    if(s === "") return null;
+
+    // scientific notation short-circuit
+    if(/^[0-9]+\.?[0-9]*e[+-]?[0-9]+$/i.test(s)){
+      const v = parseFloat(s);
+      return isFinite(v) ? (negative? -v : v) : null;
+    }
+
+    const hasComma = s.includes(",");
+    const hasDot = s.includes(".");
+
+    if(hasComma && hasDot){
+      // whichever separator appears last is the decimal separator
+      if(s.lastIndexOf(",") > s.lastIndexOf(".")){
+        s = s.replace(/\./g,"").replace(",", ".");
+      } else {
+        s = s.replace(/,/g,"");
+      }
+    } else if(hasComma && !hasDot){
+      // ambiguous: "1,234" (thousands) vs "12,50" (EU decimal)
+      const parts = s.split(",");
+      if(parts.length === 2 && parts[1].length <= 2){
+        s = parts[0] + "." + parts[1]; // EU decimal comma
+      } else {
+        s = s.replace(/,/g,""); // thousands separator
+      }
+    }
+    // dot-only case is already valid JS float format
+
+    let v = parseFloat(s);
+    if(!isFinite(v)) return null;
+    if(isPercent) v = v / 100;
+    return negative ? -v : v;
+  }
+
+  function fmtMoney(v, symbol){
+    symbol = symbol || "";
+    if(v === null || v === undefined || !isFinite(v)) return "—";
+    const neg = v < 0;
+    const out = symbol + Math.abs(v).toLocaleString(undefined,{minimumFractionDigits:2, maximumFractionDigits:2});
+    return neg ? "-" + out : out;
+  }
+  function fmtInt(v){
+    if(v === null || v === undefined || !isFinite(v)) return "—";
+    return Math.round(v).toLocaleString();
+  }
+  function fmtPct(v, digits){
+    digits = digits === undefined ? 2 : digits;
+    if(v === null || v === undefined || !isFinite(v)) return "—";
+    return (v*100).toFixed(digits) + "%";
+  }
+  function fmtRatio(v, digits){
+    digits = digits === undefined ? 2 : digits;
+    if(v === null || v === undefined || !isFinite(v)) return "—";
+    return v.toFixed(digits);
+  }
+
+  function norm(h){
+    return String(h||"").toLowerCase().replace(/\s+/g," ").trim();
+  }
+
+  return {detectCurrencySymbol, parseNumber, fmtMoney, fmtInt, fmtPct, fmtRatio, norm};
+})();
+
+/* =====================================================================
+   FILE LOADERS — xlsx workbook + csv, with header-row detection
+===================================================================== */
+const Loader = (function(){
+
+  function readFileAsArrayBuffer(file){
+    return new Promise((resolve,reject)=>{
+      const r = new FileReader();
+      r.onload = ()=>resolve(r.result);
+      r.onerror = reject;
+      r.readAsArrayBuffer(file);
+    });
+  }
+  function readFileAsText(file){
+    return new Promise((resolve,reject)=>{
+      const r = new FileReader();
+      r.onload = ()=>resolve(r.result);
+      r.onerror = reject;
+      r.readAsText(file);
+    });
+  }
+
+  async function loadWorkbook(file){
+    const buf = await readFileAsArrayBuffer(file);
+    return XLSX.read(buf, {type:"array", cellDates:false});
+  }
+
+  // Finds the header row within the first N rows of a raw AOA sheet
+  // (some exports have a title/metadata row above the real header row).
+  function findHeaderRowIndex(aoa, mustContainAny){
+    const limit = Math.min(aoa.length, 10);
+    for(let i=0;i<limit;i++){
+      const row = aoa[i].map(c=>Utils.norm(c));
+      const hit = row.some(cell => mustContainAny.some(k => cell.includes(k)));
+      const nonEmptyCount = row.filter(c=>c!=="").length;
+      if(hit && nonEmptyCount >= 3) return i;
+    }
+    return 0;
+  }
+
+  function sheetToObjects(sheet, mustContainAny){
+    const aoa = XLSX.utils.sheet_to_json(sheet, {header:1, raw:true, defval:""});
+    if(aoa.length === 0) return {rows:[], headers:[]};
+    const headerIdx = findHeaderRowIndex(aoa, mustContainAny || ["entity","campaign"]);
+    const headers = aoa[headerIdx].map(h=>String(h||"").trim());
+    const rows = [];
+    for(let i=headerIdx+1;i<aoa.length;i++){
+      const line = aoa[i];
+      if(!line || line.every(c=>c===""||c===undefined||c===null)) continue;
+      const obj = {};
+      headers.forEach((h,ci)=>{ if(h) obj[h] = line[ci]; });
+      rows.push(obj);
+    }
+    return {rows, headers};
+  }
+
+  // Simple, delimiter-sniffing CSV parser (handles quoted fields with embedded commas/newlines).
+  function parseCSV(text){
+    // sniff delimiter from the first non-empty line
+    const firstLine = text.split(/\r?\n/).find(l=>l.trim()!=="") || "";
+    const counts = {",":0,";":0,"\t":0};
+    for(const d of Object.keys(counts)){
+      counts[d] = (firstLine.match(new RegExp("\\"+d,"g"))||[]).length;
+    }
+    const delim = Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0] || ",";
+
+    const rows = [];
+    let row = [], field = "", inQuotes = false;
+    for(let i=0;i<text.length;i++){
+      const c = text[i], next = text[i+1];
+      if(inQuotes){
+        if(c === '"' && next === '"'){ field+='"'; i++; }
+        else if(c === '"'){ inQuotes = false; }
+        else field += c;
+      } else {
+        if(c === '"') inQuotes = true;
+        else if(c === delim){ row.push(field); field=""; }
+        else if(c === "\n"){ row.push(field); rows.push(row); row=[]; field=""; }
+        else if(c === "\r"){ /* skip */ }
+        else field += c;
+      }
+    }
+    if(field !== "" || row.length){ row.push(field); rows.push(row); }
+    return rows.filter(r => r.some(c=>String(c).trim()!==""));
+  }
+
+  function csvToObjects(text, mustContainAny){
+    const aoa = parseCSV(text);
+    if(aoa.length === 0) return {rows:[], headers:[]};
+    const headerIdx = findHeaderRowIndex(aoa, mustContainAny || ["asin","sku"]);
+    const headers = aoa[headerIdx].map(h=>String(h||"").trim());
+    const rows = [];
+    for(let i=headerIdx+1;i<aoa.length;i++){
+      const line = aoa[i];
+      const obj = {};
+      headers.forEach((h,ci)=>{ if(h) obj[h] = line[ci]; });
+      rows.push(obj);
+    }
+    return {rows, headers};
+  }
+
+  return {loadWorkbook, sheetToObjects, csvToObjects, readFileAsText};
+})();
+
+/* =====================================================================
+   HEADER MAPPING — normalize Amazon's ever-changing column names
+===================================================================== */
+const Cols = (function(){
+
+  function pick(obj, patterns, opts){
+    opts = opts || {};
+    const keys = Object.keys(obj);
+    for(const p of patterns){
+      for(const k of keys){
+        const nk = Utils.norm(k);
+        if(opts.exclude && opts.exclude.some(x=>nk.includes(x))) continue;
+        if(nk.includes(p)) return obj[k];
+      }
+    }
+    return undefined;
+  }
+
+  function getEntity(row){ return String(pick(row, ["entity"]) || "").trim(); }
+  function getCampaignName(row){
+    return String(pick(row, ["campaign name"], {exclude:["informational"]})
+      ?? pick(row, ["campaign name"]) ?? "").trim();
+  }
+  function getAdGroupName(row){
+    return String(pick(row, ["ad group name"], {exclude:["informational"]})
+      ?? pick(row, ["ad group name"]) ?? "").trim();
+  }
+  function getState(row){ return String(pick(row, ["state"], {exclude:["campaign state","ad group state","portfolio"]}) || "").trim().toUpperCase(); }
+  function getCampaignId(row){ return String(pick(row, ["campaign id"]) || "").trim(); }
+  function getTargetingType(row){ return String(pick(row, ["targeting type"]) || "").trim().toUpperCase(); }
+  function getMatchType(row){ return String(pick(row, ["match type"]) || "").trim().toUpperCase(); }
+  function getKeywordText(row){ return String(pick(row, ["keyword text"]) || "").trim(); }
+  function getTargetingExpr(row){ return String(pick(row, ["product targeting expression"], {exclude:["resolved"]}) || "").trim(); }
+  function getAsin(row){
+    // Prefer an explicit child-ASIN column (business reports often list Parent ASIN first).
+    return String(
+      pick(row, ["child) asin","child asin"], {exclude:["targeting"]})
+      ?? pick(row, ["asin"], {exclude:["targeting","parent"]})
+      ?? pick(row, ["asin"], {exclude:["targeting"]})
+      ?? ""
+    ).trim().toUpperCase();
+  }
+  function getSku(row){ return String(pick(row, ["sku"]) || "").trim(); }
+  function getSearchTerm(row){ return String(pick(row, ["customer search term"]) ?? pick(row, ["search term"]) ?? "").trim(); }
+  function getTargeting(row){ return String(pick(row, ["targeting"], {exclude:["targeting type","targeting expression"]}) || "").trim(); }
+
+  function getImpressions(row){ return Utils.parseNumber(pick(row, ["impressions"])) || 0; }
+  function getClicks(row){ return Utils.parseNumber(pick(row, ["clicks"], {exclude:["click-through","click thru","ctr"]})) || 0; }
+  function getSpend(row){ return Utils.parseNumber(pick(row, ["spend","cost"], {exclude:["cost per click","cpc"]})) || 0; }
+  function getSales(row){ return Utils.parseNumber(pick(row, ["sales"], {exclude:["target","acos","advertising cost","roas","return on"]})) || 0; }
+  function getOrders(row){ return Utils.parseNumber(pick(row, ["orders","order items"])) || 0; }
+  function getUnits(row){ return Utils.parseNumber(pick(row, ["units"])) || 0; }
+
+  return {pick, getEntity, getCampaignName, getAdGroupName, getState, getCampaignId,
+    getTargetingType, getMatchType, getKeywordText, getTargetingExpr, getAsin, getSku,
+    getSearchTerm, getTargeting, getImpressions, getClicks, getSpend, getSales, getOrders, getUnits};
+})();
+
+/* =====================================================================
+   BASE METRICS — sum + recompute ratios (never average a ratio)
+===================================================================== */
+const Metrics = (function(){
+  function empty(){ return {impressions:0, clicks:0, spend:0, sales:0, orders:0, units:0}; }
+  function add(totals, row){
+    totals.impressions += Cols.getImpressions(row);
+    totals.clicks += Cols.getClicks(row);
+    totals.spend += Cols.getSpend(row);
+    totals.sales += Cols.getSales(row);
+    totals.orders += Cols.getOrders(row);
+    totals.units += Cols.getUnits(row);
+    return totals;
+  }
+  function sum(rows){ return rows.reduce(add, empty()); }
+  function ratios(t){
+    return {
+      ctr: t.impressions>0 ? t.clicks/t.impressions : null,
+      cpc: t.clicks>0 ? t.spend/t.clicks : null,
+      cvr: t.clicks>0 ? t.orders/t.clicks : null,
+      acos: t.sales>0 ? t.spend/t.sales : (t.spend>0 ? Infinity : null),
+      roas: t.spend>0 ? t.sales/t.spend : null
+    };
+  }
+  return {empty, add, sum, ratios};
+})();
+
+/* =====================================================================
+   BULK PARSER
+===================================================================== */
+const BulkParser = (function(){
+
+  const SHEET_TYPE_HINTS = [
+    {type:"Sponsored Products", hints:["sponsored products"]},
+    {type:"Sponsored Brands", hints:["sponsored brands"]},
+    {type:"Sponsored Display", hints:["sponsored display"]},
+  ];
+
+  function classifySheet(name){
+    const n = Utils.norm(name);
+    for(const h of SHEET_TYPE_HINTS){
+      if(h.hints.some(k=>n.includes(k))) return h.type;
+    }
+    return null;
+  }
+
+  async function parse(file){
+    const wb = await Loader.loadWorkbook(file);
+    const campaigns = [];       // Entity = Campaign
+    const targets = [];         // Entity = Keyword | Product targeting
+    const productAds = [];      // Entity = Product Ad
+    const sheetsUsed = [];
+
+    for(const sheetName of wb.SheetNames){
+      const adType = classifySheet(sheetName);
+      if(!adType) continue;
+      sheetsUsed.push(sheetName);
+      const {rows} = Loader.sheetToObjects(wb.Sheets[sheetName], ["entity","campaign"]);
+      for(const row of rows){
+        const entity = Cols.getEntity(row);
+        if(entity === "Campaign"){
+          campaigns.push({
+            adType,
+            campaignId: Cols.getCampaignId(row),
+            campaignName: Cols.getCampaignName(row),
+            state: Cols.getState(row),
+            targetingType: Cols.getTargetingType(row) || "MANUAL",
+            impressions: Cols.getImpressions(row),
+            clicks: Cols.getClicks(row),
+            spend: Cols.getSpend(row),
+            sales: Cols.getSales(row),
+            orders: Cols.getOrders(row),
+            units: Cols.getUnits(row)
+          });
+        } else if(entity === "Keyword" || entity === "Product targeting" || entity === "Product Targeting"){
+          const isKeyword = entity === "Keyword";
+          targets.push({
+            adType,
+            campaignId: Cols.getCampaignId(row),
+            campaignName: Cols.getCampaignName(row),
+            adGroupName: Cols.getAdGroupName(row),
+            kind: isKeyword ? "keyword" : "productTargeting",
+            matchType: isKeyword ? Cols.getMatchType(row) : "",
+            text: isKeyword ? Cols.getKeywordText(row) : Cols.getTargetingExpr(row),
+            state: Cols.getState(row),
+            impressions: Cols.getImpressions(row),
+            clicks: Cols.getClicks(row),
+            spend: Cols.getSpend(row),
+            sales: Cols.getSales(row),
+            orders: Cols.getOrders(row),
+            units: Cols.getUnits(row)
+          });
+        } else if(entity === "Product Ad" || entity === "Product ad"){
+          const asin = Cols.getAsin(row);
+          if(asin){
+            productAds.push({adType, campaignId: Cols.getCampaignId(row), campaignName: Cols.getCampaignName(row), asin, sku: Cols.getSku(row), state: Cols.getState(row)});
+          }
+        }
+      }
+    }
+
+    // campaignId -> targetingType (for tagging targets/PT rows as Auto vs Manual sub-bucket)
+    const campaignTargetingType = {};
+    const campaignAdType = {};
+    campaigns.forEach(c=>{ campaignTargetingType[c.campaignId] = c.targetingType; campaignAdType[c.campaignId] = c.adType; });
+    targets.forEach(t=>{ t.campaignTargetingType = campaignTargetingType[t.campaignId] || "MANUAL"; });
+
+    return {campaigns, targets, productAds, sheetsUsed, campaignTargetingType, campaignAdType};
+  }
+
+  return {parse};
+})();
+
+/* =====================================================================
+   SEARCH TERM REPORT PARSER
+===================================================================== */
+const SearchTermParser = (function(){
+
+  async function parse(file, campaignNameToAdType){
+    let sheetsData = [];
+    const isCSV = /\.csv$/i.test(file.name);
+    if(isCSV){
+      const text = await Loader.readFileAsText(file);
+      const {rows} = Loader.csvToObjects(text, ["customer search term","search term"]);
+      sheetsData.push(rows);
+    } else {
+      const wb = await Loader.loadWorkbook(file);
+      for(const sheetName of wb.SheetNames){
+        const {rows} = Loader.sheetToObjects(wb.Sheets[sheetName], ["customer search term","search term"]);
+        if(rows.length) sheetsData.push(rows);
+      }
+    }
+
+    const out = [];
+    for(const rows of sheetsData){
+      for(const row of rows){
+        const searchTerm = Cols.getSearchTerm(row);
+        if(!searchTerm) continue;
+        const campaignName = Cols.getCampaignName(row);
+        let matchType = Cols.getMatchType(row);
+        if(!matchType || matchType === "-") matchType = "AUTO";
+        out.push({
+          searchTerm,
+          campaignName,
+          adGroupName: Cols.getAdGroupName(row),
+          targeting: Cols.getTargeting(row),
+          matchType,
+          adType: campaignNameToAdType[campaignName] || "Unknown",
+          impressions: Cols.getImpressions(row),
+          clicks: Cols.getClicks(row),
+          spend: Cols.getSpend(row),
+          sales: Cols.getSales(row),
+          orders: Cols.getOrders(row),
+          units: Cols.getUnits(row)
+        });
+      }
+    }
+    return out;
+  }
+
+  return {parse};
+})();
+
+/* =====================================================================
+   BUSINESS REPORT PARSER
+===================================================================== */
+const BusinessReportParser = (function(){
+  async function parse(file){
+    const text = await Loader.readFileAsText(file);
+    const {rows} = Loader.csvToObjects(text, ["asin","sku"]);
+    const out = [];
+    for(const row of rows){
+      const asin = Cols.getAsin(row);
+      if(!asin) continue;
+      const sales = Utils.parseNumber(Cols.pick(row, ["ordered product sales"], {exclude:["b2b","business"]})) || 0;
+      const units = Utils.parseNumber(Cols.pick(row, ["units ordered"], {exclude:["b2b"]})) || 0;
+      const sessions = Utils.parseNumber(Cols.pick(row, ["sessions - total","sessions total","sessions"], {exclude:["percentage","b2b"]})) || 0;
+      const orderItems = Utils.parseNumber(Cols.pick(row, ["total order items"])) || 0;
+      out.push({asin, sku: Cols.getSku(row), sales, units, sessions, orders: orderItems});
+    }
+    return out;
+  }
+  return {parse};
+})();
+
+/* =====================================================================
+   ANALYSIS — the actual audit logic
+===================================================================== */
+const Analysis = (function(){
+
+  function groupSum(rows, keyFn){
+    const map = new Map();
+    for(const r of rows){
+      const k = keyFn(r);
+      if(!map.has(k)) map.set(k, []);
+      map.get(k).push(r);
+    }
+    const out = [];
+    for(const [k, rs] of map.entries()){
+      const t = Metrics.sum(rs);
+      out.push({key:k, rows:rs, totals:t, ratios:Metrics.ratios(t)});
+    }
+    return out;
+  }
+
+  function campaignNameToAdTypeMap(campaigns){
+    const m = {};
+    campaigns.forEach(c=>{ m[c.campaignName] = c.adType; });
+    return m;
+  }
+
+  // ---- Account overview ----
+  function accountOverview(bulk, businessRows){
+    const ppc = Metrics.sum(bulk.campaigns);
+    const ppcRatios = Metrics.ratios(ppc);
+    let totalSales = null, organicSales = null, tacos = null;
+    if(businessRows && businessRows.length){
+      totalSales = businessRows.reduce((s,r)=>s+r.sales,0);
+      organicSales = totalSales - ppc.sales;
+      tacos = totalSales>0 ? ppc.spend/totalSales : null;
+    }
+    return {ppc, ppcRatios, totalSales, organicSales, tacos};
+  }
+
+  // ---- Campaign ad type analysis (SP / SB / SD) ----
+  function adTypeAnalysis(bulk){
+    return groupSum(bulk.campaigns, c=>c.adType)
+      .sort((a,b)=>b.totals.sales-a.totals.sales);
+  }
+
+  // ---- Targeting type analysis (Manual vs Auto), SP only ----
+  function targetingTypeAnalysis(bulk){
+    const spCampaigns = bulk.campaigns.filter(c=>c.adType==="Sponsored Products");
+    return groupSum(spCampaigns, c=>c.targetingType || "MANUAL")
+      .sort((a,b)=>b.totals.sales-a.totals.sales);
+  }
+
+  // ---- Match type analysis, from keyword + product targeting rows ----
+  function matchTypeBucket(t){
+    if(t.kind === "keyword") return t.matchType || "UNKNOWN";
+    // product targeting row
+    return t.campaignTargetingType === "AUTO" ? "AUTO (product targeting)" : "PRODUCT/CATEGORY TARGETING";
+  }
+  function matchTypeAnalysis(bulk){
+    const spTargets = bulk.targets.filter(t=>t.adType==="Sponsored Products");
+    return groupSum(spTargets, matchTypeBucket)
+      .sort((a,b)=>b.totals.sales-a.totals.sales);
+  }
+
+  // Discovery vs exact spend share (funnel health)
+  function funnelHealth(bulk){
+    const spTargets = bulk.targets.filter(t=>t.adType==="Sponsored Products");
+    const t = Metrics.sum(spTargets);
+    const exactRows = spTargets.filter(x=>x.kind==="keyword" && x.matchType==="EXACT");
+    const exact = Metrics.sum(exactRows);
+    const exactSpendShare = t.spend>0 ? exact.spend/t.spend : null;
+    const exactSalesShare = t.sales>0 ? exact.sales/t.sales : null;
+    return {total:t, exact, exactSpendShare, exactSalesShare};
+  }
+
+  // ---- Search term coverage check ----
+  function coverageByAdType(bulk, stRows){
+    const adTypes = Array.from(new Set(bulk.campaigns.map(c=>c.adType)));
+    const out = {};
+    for(const at of adTypes){
+      const bulkSpend = bulk.campaigns.filter(c=>c.adType===at).reduce((s,c)=>s+c.spend,0);
+      const stSpend = stRows.filter(r=>r.adType===at).reduce((s,r)=>s+r.spend,0);
+      out[at] = {bulkSpend, stSpend, coverage: bulkSpend>0 ? stSpend/bulkSpend : null};
+    }
+    return out;
+  }
+
+  // ---- Harvest candidates (strict, per-row, never aggregated) ----
+  function isProven(r){
+    return r.orders >= 3 && r.impressions > 5 && r.clicks > 5;
+  }
+
+  function harvestCandidates(bulk, stRows){
+    // existing exact keywords, keyed by campaignId + lowercased text
+    const existingExact = new Set();
+    bulk.targets.forEach(t=>{
+      if(t.kind==="keyword" && t.matchType==="EXACT"){
+        existingExact.add(t.campaignId + "||" + t.text.toLowerCase());
+      }
+    });
+    const campaignIdByName = {};
+    bulk.campaigns.forEach(c=>{ campaignIdByName[c.campaignName] = c.campaignId; });
+
+    const candidates = [];
+    for(const r of stRows){
+      if(r.matchType === "EXACT") continue; // already exact, not a harvest candidate
+      if(!isProven(r)) continue;
+      const cid = campaignIdByName[r.campaignName];
+      const key = cid + "||" + r.searchTerm.toLowerCase();
+      if(cid && existingExact.has(key)) continue; // already harvested
+      candidates.push(r);
+    }
+    return candidates.sort((a,b)=>b.sales-a.sales);
+  }
+
+  // ---- Wasted spend (dollars, no click threshold) ----
+  function wastedSpend(stRows){
+    return stRows
+      .filter(r=>r.orders===0 && r.spend>0)
+      .sort((a,b)=>b.spend-a.spend);
+  }
+
+  // ---- Untargeted ASIN opportunities ----
+  function untargetedAsins(bulk, businessRows){
+    if(!businessRows || !businessRows.length) return null;
+    const advertised = new Set(bulk.productAds.map(p=>p.asin));
+    return businessRows
+      .filter(r=>!advertised.has(r.asin) && r.sales>0)
+      .sort((a,b)=>b.sales-a.sales);
+  }
+
+  return {
+    accountOverview, adTypeAnalysis, targetingTypeAnalysis, matchTypeAnalysis,
+    funnelHealth, coverageByAdType, harvestCandidates, wastedSpend, untargetedAsins,
+    campaignNameToAdTypeMap, isProven
+  };
+})();
+
+/* =====================================================================
+   RECOMMENDATIONS — dynamic, only fires on real findings
+===================================================================== */
+function buildRecommendations(ctx){
+  const recs = [];
+  const {funnel, harvest, waste, untargeted, adTypes, overview} = ctx;
+
+  if(funnel.exactSpendShare !== null && funnel.exactSpendShare < 0.5){
+    recs.push({
+      title:"Move more spend into Exact",
+      body:`Only ${Utils.fmtPct(funnel.exactSpendShare)} of keyword-targeted SP spend sits in Exact match — the rest is still in discovery (Auto/Broad/Phrase). Harvest proven terms into dedicated Exact keywords so each gets its own bid and budget.`
+    });
+  }
+  if(harvest.length){
+    const sales = harvest.reduce((s,r)=>s+r.sales,0);
+    recs.push({
+      title:`Harvest ${harvest.length} proven search term${harvest.length>1?"s":""}`,
+      body:`These terms hit 3+ orders with meaningful impressions/clicks but aren't yet running as their own Exact keyword, representing ${ctx.symbol}${sales.toFixed(2)} in proven sales left in discovery match types.`
+    });
+  }
+  if(waste.length){
+    const spend = waste.reduce((s,r)=>s+r.spend,0);
+    recs.push({
+      title:`Cut ${ctx.symbol}${spend.toFixed(2)} in wasted spend`,
+      body:`${waste.length} search term${waste.length>1?"s":""} generated spend with zero orders in this period. Review and negate the ones with no strategic reason to keep running.`
+    });
+  }
+  if(untargeted && untargeted.length){
+    const sales = untargeted.reduce((s,r)=>s+r.sales,0);
+    recs.push({
+      title:`${untargeted.length} untargeted ASIN${untargeted.length>1?"s":""} with real sales`,
+      body:`These ASINs generated ${ctx.symbol}${sales.toFixed(2)} in sales but have no ad coverage in this bulk file. Product/ASIN targeting campaigns could capture this demand deliberately instead of relying on it staying organic.`
+    });
+  }
+  const sd = adTypes.find(a=>a.key==="Sponsored Display");
+  if(!sd){
+    recs.push({title:"No Sponsored Display activity", body:"There are currently no active Sponsored Display campaigns. Worth testing down the line for retargeting and top-of-funnel reach once Sponsored Products/Brands are optimized."});
+  }
+  if(overview.tacos !== null && overview.tacos !== undefined){
+    recs.push({title:"Keep an eye on TACOS", body:`TACOS is currently ${Utils.fmtPct(overview.tacos)} — track this alongside ACOS so PPC efficiency gains aren't just cannibalizing organic sales.`});
+  }
+  if(!recs.length){
+    recs.push({title:"No urgent issues surfaced", body:"Based on the uploaded reports, spend is concentrated in Exact, waste is minimal, and there are no obvious untargeted opportunities. Keep up regular monitoring."});
+  }
+  return recs;
+}
+
+/* =====================================================================
+   RENDERING
+===================================================================== */
+const Render = (function(){
+  let chartRefs = [];
+
+  function el(tag, attrs, children){
+    const e = document.createElement(tag);
+    if(attrs) for(const k in attrs){
+      if(k==="class") e.className = attrs[k];
+      else if(k==="html") e.innerHTML = attrs[k];
+      else e.setAttribute(k, attrs[k]);
+    }
+    (children||[]).forEach(c=>{ if(c) e.appendChild(c); });
+    return e;
+  }
+
+  function kpiTile(label, value, sub){
+    return el("div",{class:"kpi"},[
+      el("div",{class:"label",html:label}),
+      el("div",{class:"value",html:value}),
+      sub ? el("div",{class:"sub",html:sub}) : null
+    ]);
+  }
+
+  function table(headers, rows, footerRow){
+    const t = el("table");
+    const thead = el("thead");
+    const htr = el("tr");
+    headers.forEach(h=>htr.appendChild(el("th",{html:h})));
+    thead.appendChild(htr);
+    t.appendChild(thead);
+    const tbody = el("tbody");
+    rows.forEach(r=>{
+      const tr = el("tr");
+      r.forEach(c=>tr.appendChild(el("td",{html:c})));
+      tbody.appendChild(tr);
+    });
+    t.appendChild(tbody);
+    if(footerRow){
+      const tfoot = el("tfoot");
+      const tr = el("tr");
+      footerRow.forEach(c=>tr.appendChild(el("td",{html:c})));
+      tfoot.appendChild(tr);
+      t.appendChild(tfoot);
+    }
+    return el("div",{class:"table-scroll"},[t]);
+  }
+
+  function doughnut(canvasId, labels, data, colors){
+    const ctx = document.getElementById(canvasId).getContext("2d");
+    const chart = new Chart(ctx, {
+      type:"doughnut",
+      data:{labels, datasets:[{data, backgroundColor:colors, borderWidth:1}]},
+      options:{plugins:{legend:{position:"bottom", labels:{boxWidth:10, font:{size:11}}}}, maintainAspectRatio:false}
+    });
+    chartRefs.push(chart);
+  }
+
+  function sectionHeader(root, title, sub){
+    root.appendChild(el("h2",{class:"section-title",html:title}));
+    if(sub) root.appendChild(el("p",{class:"section-sub",html:sub}));
+  }
+
+  return {el, kpiTile, table, doughnut, sectionHeader, get chartRefs(){return chartRefs;}, resetCharts(){ chartRefs.forEach(c=>c.destroy()); chartRefs=[]; }};
+})();
+
+/* =====================================================================
+   APP — orchestration
+===================================================================== */
+const App = (function(){
+  const files = {bulk:null, searchTerm:null, business:null};
+
+  function bindDrop(dropId, inputId, stateId, fileKey){
+    const drop = document.getElementById(dropId);
+    const input = document.getElementById(inputId);
+    const state = document.getElementById(stateId);
+    drop.addEventListener("click", ()=>input.click());
+    drop.addEventListener("dragover", e=>{ e.preventDefault(); drop.classList.add("drag"); });
+    drop.addEventListener("dragleave", ()=>drop.classList.remove("drag"));
+    drop.addEventListener("drop", e=>{
+      e.preventDefault(); drop.classList.remove("drag");
+      if(e.dataTransfer.files.length){ input.files = e.dataTransfer.files; handleFile(); }
+    });
+    input.addEventListener("change", handleFile);
+    function handleFile(){
+      const f = input.files[0];
+      files[fileKey] = f || null;
+      state.textContent = f ? (f.name + " — " + (f.size/1024).toFixed(0) + " KB") : "No file selected";
+      state.style.color = f ? "var(--accent)" : "var(--text-muted)";
+      checkReady();
+    }
+  }
+
+  function checkReady(){
+    const btn = document.getElementById("btnGenerate");
+    btn.disabled = !(files.bulk && files.searchTerm && files.business);
+  }
+
+  function setStatus(msg, isErr){
+    const s = document.getElementById("statusLine");
+    s.textContent = msg;
+    s.className = "status-line" + (isErr ? " err" : "");
+  }
+
+  async function generate(){
+    const btn = document.getElementById("btnGenerate");
+    btn.disabled = true;
+    setStatus("Parsing bulk sheet…");
+    try{
+      const bulk = await BulkParser.parse(files.bulk);
+      if(!bulk.campaigns.length){
+        setStatus("No campaign rows found in the bulk file — check the sheet names match Amazon's Bulk 2.0 export.", true);
+        btn.disabled = false; return;
+      }
+      const nameMap = Analysis.campaignNameToAdTypeMap(bulk.campaigns);
+
+      setStatus("Parsing search term report…");
+      const stRows = await SearchTermParser.parse(files.searchTerm, nameMap);
+
+      setStatus("Parsing business report…");
+      const bizRows = await BusinessReportParser.parse(files.business);
+
+      let symbol = document.getElementById("currencyOverride").value.trim();
+      if(!symbol){
+        symbol = detectSymbol(bulk, bizRows) || "";
+      }
+
+      setStatus("Building audit…");
+      renderReport({bulk, stRows, bizRows, symbol});
+      setStatus("Done. Scroll down for the full audit, or Ctrl/Cmd+P to save as PDF.");
+    } catch(err){
+      console.error(err);
+      setStatus("Something went wrong while parsing: " + err.message, true);
+    }
+    btn.disabled = false;
+  }
+
+  function detectSymbol(bulk, bizRows){
+    // best-effort: not always recoverable since xlsx numeric cells lose symbols;
+    // falls back to blank (plain numbers) rather than guessing wrong.
+    return "";
+  }
+
+  function renderReport(data){
+    Render.resetCharts();
+    const root = document.getElementById("reportRoot");
+    root.innerHTML = "";
+    root.style.display = "block";
+
+    const {bulk, stRows, bizRows, symbol} = data;
+    const brand = document.getElementById("brandName").value.trim() || "This account";
+
+    const overview = Analysis.accountOverview(bulk, bizRows);
+    const adTypes = Analysis.adTypeAnalysis(bulk);
+    const targetingTypes = Analysis.targetingTypeAnalysis(bulk);
+    const matchTypes = Analysis.matchTypeAnalysis(bulk);
+    const funnel = Analysis.funnelHealth(bulk);
+    const coverage = Analysis.coverageByAdType(bulk, stRows);
+    const harvest = Analysis.harvestCandidates(bulk, stRows);
+    const waste = Analysis.wastedSpend(stRows);
+    const untargeted = Analysis.untargetedAsins(bulk, bizRows);
+
+    renderDataSummary(root, bulk, stRows, bizRows, coverage);
+    renderOverview(root, brand, overview, symbol);
+    renderAdTypeAnalysis(root, adTypes, symbol);
+    renderTargetingTypeAnalysis(root, targetingTypes, symbol);
+    renderMatchTypeAnalysis(root, matchTypes, funnel, symbol);
+    renderSearchTermFindings(root, harvest, waste, symbol);
+    renderUntargetedAsins(root, untargeted, symbol);
+    renderRecommendations(root, {funnel, harvest, waste, untargeted, adTypes, overview, symbol});
+
+    root.scrollIntoView({behavior:"smooth"});
+  }
+
+  function renderDataSummary(root, bulk, stRows, bizRows, coverage){
+    const card = Render.el("div",{class:"card"});
+    Render.sectionHeader(card, "Data loaded", "What each report contributed, and how much of ad-type spend the search term report actually covers.");
+    const rows = [
+      ["Bulk sheet", `${bulk.campaigns.length} campaigns, ${bulk.targets.length} keyword/targeting rows, ${bulk.productAds.length} advertised ASINs (sheets: ${bulk.sheetsUsed.join(", ")})`],
+      ["Search term report", `${stRows.length} search term rows`],
+      ["Business report", `${bizRows.length} ASIN rows`]
+    ];
+    card.appendChild(Render.table(["Report","Contents"], rows));
+
+    const covRows = Object.keys(coverage).map(at=>{
+      const c = coverage[at];
+      const pct = c.coverage === null ? "n/a" : Utils.fmtPct(c.coverage,0);
+      const flag = c.coverage !== null && c.coverage < 0.9
+        ? '<span class="pill warn">below 90% — search-term-level findings for this ad type may be incomplete</span>'
+        : '<span class="pill ok">covered</span>';
+      return [at, pct, flag];
+    });
+    if(covRows.length){
+      card.appendChild(Render.el("p",{class:"section-sub", html:"Search term report coverage by ad type (search-term spend ÷ campaign-row spend):"}));
+      card.appendChild(Render.table(["Ad type","Coverage","Status"], covRows));
+    }
+    root.appendChild(card);
+  }
+
+  function renderOverview(root, brand, ov, symbol){
+    const card = Render.el("div",{class:"card"});
+    Render.sectionHeader(card, "Account overview", brand);
+    const grid = Render.el("div",{class:"kpi-grid"});
+    grid.appendChild(Render.kpiTile("PPC Spend", Utils.fmtMoney(ov.ppc.spend, symbol)));
+    grid.appendChild(Render.kpiTile("PPC Sales", Utils.fmtMoney(ov.ppc.sales, symbol)));
+    if(ov.totalSales !== null){
+      grid.appendChild(Render.kpiTile("Total Sales", Utils.fmtMoney(ov.totalSales, symbol), "Business report"));
+      grid.appendChild(Render.kpiTile("Organic Sales", Utils.fmtMoney(ov.organicSales, symbol), "Total − PPC"));
+    }
+    grid.appendChild(Render.kpiTile("Impressions", Utils.fmtInt(ov.ppc.impressions)));
+    grid.appendChild(Render.kpiTile("Clicks", Utils.fmtInt(ov.ppc.clicks)));
+    grid.appendChild(Render.kpiTile("Orders", Utils.fmtInt(ov.ppc.orders)));
+    grid.appendChild(Render.kpiTile("CTR", Utils.fmtPct(ov.ppcRatios.ctr)));
+    grid.appendChild(Render.kpiTile("CVR", Utils.fmtPct(ov.ppcRatios.cvr)));
+    grid.appendChild(Render.kpiTile("CPC", Utils.fmtMoney(ov.ppcRatios.cpc, symbol)));
+    grid.appendChild(Render.kpiTile("ACOS", ov.ppcRatios.acos===Infinity ? "∞" : Utils.fmtPct(ov.ppcRatios.acos)));
+    grid.appendChild(Render.kpiTile("ROAS", ov.ppcRatios.roas ? ov.ppcRatios.roas.toFixed(2)+"x" : "—"));
+    if(ov.tacos !== null) grid.appendChild(Render.kpiTile("TACOS", Utils.fmtPct(ov.tacos)));
+    card.appendChild(grid);
+    if(ov.totalSales === null){
+      card.appendChild(Render.el("div",{class:"insight warn", html:"Organic sales and TACOS need the business report's Ordered Product Sales — none of the uploaded rows produced usable totals, so they're left out rather than guessed."}));
+    } else {
+      card.appendChild(Render.el("div",{class:"insight", html:"Organic Sales = Total Sales (business report) − PPC Sales (ads). This is Amazon's standard approximation, not a true attribution split."}));
+    }
+    root.appendChild(card);
+  }
+
+  function pieCard(root, title, sub, rows, valueField, canvasId, colors, headers, rowFmt){
+    const card = Render.el("div",{class:"card"});
+    Render.sectionHeader(card, title, sub);
+    const tCols = headers;
+    const tRows = rows.map(r=>rowFmt(r));
+    const footTotals = rows.reduce((acc,r)=>{
+      acc.impressions+=r.totals.impressions; acc.clicks+=r.totals.clicks; acc.spend+=r.totals.spend;
+      acc.sales+=r.totals.sales; acc.orders+=r.totals.orders; return acc;
+    },{impressions:0,clicks:0,spend:0,sales:0,orders:0});
+    card.appendChild(Render.table(tCols, tRows));
+    const wrap = Render.el("div",{class:"two-col", style:""});
+    const c1 = Render.el("div",{},[
+      Render.el("p",{class:"section-sub",html:"Sales share"}),
+      Render.el("div",{class:"chart-box"},[Render.el("canvas",{id:canvasId+"_sales"})])
+    ]);
+    const c2 = Render.el("div",{},[
+      Render.el("p",{class:"section-sub",html:"Spend share"}),
+      Render.el("div",{class:"chart-box"},[Render.el("canvas",{id:canvasId+"_spend"})])
+    ]);
+    wrap.appendChild(c1); wrap.appendChild(c2);
+    card.appendChild(wrap);
+    root.appendChild(card);
+    setTimeout(()=>{
+      Render.doughnut(canvasId+"_sales", rows.map(r=>r.key), rows.map(r=>r.totals.sales), colors);
+      Render.doughnut(canvasId+"_spend", rows.map(r=>r.key), rows.map(r=>r.totals.spend), colors);
+    },0);
+  }
+
+  function renderAdTypeAnalysis(root, adTypes, symbol){
+    if(!adTypes.length) return;
+    pieCard(root, "Campaign ad type analysis", "Performance split across Sponsored Products / Brands / Display.",
+      adTypes, "sales", "adType",
+      ["#2f6f5e","#e0a458","#6f8fb0","#b3452c"],
+      ["Ad type","Impressions","Clicks","Orders","Sales","Spend","CVR","ACOS"],
+      r=>[r.key, Utils.fmtInt(r.totals.impressions), Utils.fmtInt(r.totals.clicks), Utils.fmtInt(r.totals.orders),
+          Utils.fmtMoney(r.totals.sales,symbol), Utils.fmtMoney(r.totals.spend,symbol), Utils.fmtPct(r.ratios.cvr), r.ratios.acos===Infinity?"∞":Utils.fmtPct(r.ratios.acos)]
+    );
+  }
+
+  function renderTargetingTypeAnalysis(root, tt, symbol){
+    if(!tt.length) return;
+    pieCard(root, "SP targeting type analysis", "Manual vs Automatic targeting within Sponsored Products.",
+      tt, "sales", "targetingType",
+      ["#2f6f5e","#e0a458","#6f8fb0"],
+      ["Targeting type","Impressions","Clicks","Orders","Sales","Spend","CVR","ACOS"],
+      r=>[r.key, Utils.fmtInt(r.totals.impressions), Utils.fmtInt(r.totals.clicks), Utils.fmtInt(r.totals.orders),
+          Utils.fmtMoney(r.totals.sales,symbol), Utils.fmtMoney(r.totals.spend,symbol), Utils.fmtPct(r.ratios.cvr), r.ratios.acos===Infinity?"∞":Utils.fmtPct(r.ratios.acos)]
+    );
+  }
+
+  function renderMatchTypeAnalysis(root, mt, funnel, symbol){
+    if(!mt.length) return;
+    pieCard(root, "SP match type analysis", "Built from keyword + product-targeting rows in the bulk file (complete impressions, not limited to clicked search terms).",
+      mt, "sales", "matchType",
+      ["#2f6f5e","#e0a458","#6f8fb0","#b3452c","#8a6fb0"],
+      ["Match type","Impressions","Clicks","Orders","Sales","Spend","CVR","ACOS"],
+      r=>[r.key, Utils.fmtInt(r.totals.impressions), Utils.fmtInt(r.totals.clicks), Utils.fmtInt(r.totals.orders),
+          Utils.fmtMoney(r.totals.sales,symbol), Utils.fmtMoney(r.totals.spend,symbol), Utils.fmtPct(r.ratios.cvr), r.ratios.acos===Infinity?"∞":Utils.fmtPct(r.ratios.acos)]
+    );
+
+    const card = Render.el("div",{class:"card"});
+    Render.sectionHeader(card, "Funnel health", "How much keyword-targeted spend has actually made it to Exact — the level where you control bid and budget directly.");
+    const grid = Render.el("div",{class:"kpi-grid"});
+    grid.appendChild(Render.kpiTile("Exact spend share", funnel.exactSpendShare===null?"—":Utils.fmtPct(funnel.exactSpendShare)));
+    grid.appendChild(Render.kpiTile("Exact sales share", funnel.exactSalesShare===null?"—":Utils.fmtPct(funnel.exactSalesShare)));
+    card.appendChild(grid);
+    const isHealthy = funnel.exactSpendShare !== null && funnel.exactSpendShare >= 0.5;
+    card.appendChild(Render.el("div",{class:"insight" + (isHealthy?"":" warn"), html: isHealthy
+      ? "The majority of keyword-targeted spend sits in Exact — this account has largely moved proven terms out of discovery."
+      : "Most keyword-targeted spend is still in discovery (Auto/Broad/Phrase), not Exact. Efficiency metrics alone can look fine while this remains structurally true — see the harvest candidates below."}));
+    root.appendChild(card);
+  }
+
+  function renderSearchTermFindings(root, harvest, waste, symbol){
+    const card = Render.el("div",{class:"card"});
+    Render.sectionHeader(card, "Search term findings", "Proven = 3+ orders, more than 5 impressions and more than 5 clicks — judged per campaign/ad group/match type row, never aggregated across campaigns.");
+
+    card.appendChild(Render.el("h3",{html:"Harvest candidates ("+harvest.length+")"}));
+    if(harvest.length){
+      card.appendChild(Render.table(
+        ["Search term","Campaign","Match type","Impressions","Clicks","Orders","Sales","Spend","ACOS"],
+        harvest.slice(0,25).map(r=>[r.searchTerm, r.campaignName, r.matchType, Utils.fmtInt(r.impressions), Utils.fmtInt(r.clicks), Utils.fmtInt(r.orders),
+          Utils.fmtMoney(r.sales,symbol), Utils.fmtMoney(r.spend,symbol), r.sales>0?Utils.fmtPct(r.spend/r.sales):"∞"])
+      ));
+      if(harvest.length>25) card.appendChild(Render.el("p",{class:"section-sub",html:"Showing top 25 of "+harvest.length+" by sales."}));
+    } else {
+      card.appendChild(Render.el("div",{class:"empty-state", html:"No proven search terms outside of Exact found in this period."}));
+    }
+
+    card.appendChild(Render.el("h3",{html:"Wasted spend ("+waste.length+" terms, zero orders)"}));
+    if(waste.length){
+      const total = waste.reduce((s,r)=>s+r.spend,0);
+      card.appendChild(Render.el("p",{class:"section-sub",html:"Total wasted: "+Utils.fmtMoney(total,symbol)+". Judged on dollars spent, not click volume — even a handful of clicks at real spend with zero orders counts."}));
+      card.appendChild(Render.table(
+        ["Search term","Campaign","Match type","Impressions","Clicks","Spend"],
+        waste.slice(0,25).map(r=>[r.searchTerm, r.campaignName, r.matchType, Utils.fmtInt(r.impressions), Utils.fmtInt(r.clicks), Utils.fmtMoney(r.spend,symbol)])
+      ));
+      if(waste.length>25) card.appendChild(Render.el("p",{class:"section-sub",html:"Showing top 25 of "+waste.length+" by spend."}));
+    } else {
+      card.appendChild(Render.el("div",{class:"empty-state", html:"No wasted spend found — every search term with spend generated at least one order."}));
+    }
+    root.appendChild(card);
+  }
+
+  function renderUntargetedAsins(root, untargeted, symbol){
+    const card = Render.el("div",{class:"card"});
+    Render.sectionHeader(card, "Untargeted ASIN opportunities", "ASINs from the business report generating real sales with no advertised presence anywhere in the bulk file.");
+    if(untargeted === null){
+      card.appendChild(Render.el("div",{class:"missing-data", html:"Not available without the business report."}));
+    } else if(!untargeted.length){
+      card.appendChild(Render.el("div",{class:"empty-state", html:"Every ASIN with sales in the business report is already advertised somewhere in the bulk file."}));
+    } else {
+      const total = untargeted.reduce((s,r)=>s+r.sales,0);
+      card.appendChild(Render.el("p",{class:"section-sub",html:untargeted.length+" untargeted ASINs, "+Utils.fmtMoney(total,symbol)+" combined sales."}));
+      card.appendChild(Render.table(
+        ["ASIN","Units","Sales"],
+        untargeted.slice(0,20).map(r=>[r.asin, Utils.fmtInt(r.units), Utils.fmtMoney(r.sales,symbol)]),
+        ["Grand total","", Utils.fmtMoney(total,symbol)]
+      ));
+      if(untargeted.length>20) card.appendChild(Render.el("p",{class:"section-sub",html:"Showing top 20 of "+untargeted.length+" by sales."}));
+    }
+    root.appendChild(card);
+  }
+
+  function renderRecommendations(root, ctx){
+    const card = Render.el("div",{class:"card"});
+    Render.sectionHeader(card, "Recommendations", "Generated from what this account's own data actually shows — not a generic checklist.");
+    const recs = buildRecommendations(ctx);
+    const list = Render.el("ul",{class:"rec-list"});
+    recs.forEach((r,i)=>{
+      list.appendChild(Render.el("li",{},[
+        Render.el("div",{class:"rec-num",html:String(i+1)}),
+        Render.el("div",{class:"rec-body"},[
+          Render.el("b",{html:r.title}),
+          Render.el("span",{html:r.body})
+        ])
+      ]));
+    });
+    card.appendChild(list);
+    root.appendChild(card);
+  }
+
+  function init(){
+    bindDrop("dropBulk","fileBulk","stateBulk","bulk");
+    bindDrop("dropSearchTerm","fileSearchTerm","stateSearchTerm","searchTerm");
+    bindDrop("dropBusiness","fileBusiness","stateBusiness","business");
+    document.getElementById("btnGenerate").addEventListener("click", generate);
+  }
+
+  return {init};
+})();
+
+document.addEventListener("DOMContentLoaded", App.init);
+})();
+</script>
+</body>
+</html>
