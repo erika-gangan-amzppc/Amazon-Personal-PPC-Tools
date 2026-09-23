@@ -11,7 +11,7 @@
 <link rel="stylesheet" href="../shared/theme.css?v=11">
 <style>body{visibility:hidden}</style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="../shared/ppc-lib.js?v=5"></script>
+<script src="../shared/ppc-lib.js?v=6"></script>
 <script src="../shared/theme-toggle.js?v=4" defer></script>
 <script src="../shared/gate.js?v=4" defer></script>
 </head>
@@ -117,10 +117,7 @@ function renderReport(bulk, stRows){
 
   const exportCard = Render.el("div",{class:"card"});
   const actions = Render.el("div",{class:"section-actions"});
-  actions.appendChild(Render.el("div",{style:"display:flex;align-items:center;gap:10px;"},[
-    Render.el("h2",{class:"section-title", style:"margin:0;", html:"Export"}),
-    Render.el("a",{class:"back-link", href:"../", html:'<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>All tools'})
-  ]));
+  actions.appendChild(Render.el("h2",{class:"section-title", style:"margin:0;", html:"Export"}));
   const btn = Render.el("button",{class:"secondary"},[]);
   btn.textContent = "Download new-keyword CSV (" + (promote.length+sameType.length) + " rows)";
   btn.addEventListener("click", ()=>downloadCSV(promote, sameType));
