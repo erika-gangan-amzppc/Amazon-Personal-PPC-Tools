@@ -8,7 +8,7 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..600;1,8..60,400..500&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="../shared/theme.css?v=9">
+<link rel="stylesheet" href="../shared/theme.css?v=10">
 <style>body{visibility:hidden}</style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="../shared/ppc-lib.js?v=5"></script>
@@ -216,7 +216,9 @@ const App = (function(){
     function handleFile(){
       const f = input.files[0];
       files[fileKey] = f || null;
-      state.textContent = f ? (f.name + " — " + (f.size/1024).toFixed(0) + " KB") : "No file selected";
+      const label = f ? (f.name + " — " + (f.size/1024).toFixed(0) + " KB") : "No file selected";
+      state.textContent = label;
+      state.title = label;
       state.style.color = f ? "var(--accent)" : "var(--text-muted)";
       checkReady();
     }
