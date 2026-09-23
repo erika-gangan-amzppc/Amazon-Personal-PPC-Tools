@@ -616,8 +616,14 @@ const Render = (function(){
     chartRefs.push(chart);
   }
 
+  const BACK_LINK_ICON = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>';
+
   function sectionHeader(root, title, sub){
-    root.appendChild(el("h2",{class:"section-title",html:title}));
+    const row = el("div", {class:"section-actions", style:"margin:44px 0 4px;"}, [
+      el("h2",{class:"section-title", style:"margin:0;", html:title}),
+      el("a", {class:"back-link", href:"../", html: BACK_LINK_ICON + "All tools"})
+    ]);
+    root.appendChild(row);
     if(sub) root.appendChild(el("p",{class:"section-sub",html:sub}));
   }
 
