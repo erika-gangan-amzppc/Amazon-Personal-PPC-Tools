@@ -8,10 +8,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..600;1,8..60,400..500&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="../shared/theme.css?v=11">
+<link rel="stylesheet" href="../shared/theme.css?v=12">
 <style>body{visibility:hidden}</style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="../shared/ppc-lib.js?v=6"></script>
+<script src="../shared/ppc-lib.js?v=7"></script>
 <script src="../shared/theme-toggle.js?v=4" defer></script>
 <script src="../shared/gate.js?v=4" defer></script>
 </head>
@@ -118,7 +118,7 @@ function renderReport(bulk, stRows){
   const wasted = Analysis.wastedSpendNegationCandidates(bulk, stRows);
   const existingNeg = Analysis.negativesSummary(bulk);
 
-  const summaryCard = Render.el("div",{class:"card"});
+  const summaryCard = Render.el("div",{class:"card", id:"data-summary", "data-nav-label":"Data"});
   Render.sectionHeader(summaryCard, "Data loaded", "");
   const grid = Render.el("div",{class:"kpi-grid"});
   grid.appendChild(Render.kpiTile("Campaigns", Utils.fmtInt(bulk.campaigns.length)));
@@ -128,7 +128,7 @@ function renderReport(bulk, stRows){
   summaryCard.appendChild(grid);
   root.appendChild(summaryCard);
 
-  const harvestCard = Render.el("div",{class:"card"});
+  const harvestCard = Render.el("div",{class:"card", id:"harvested-negate", "data-nav-label":"Harvested — Negate"});
   Render.sectionHeader(harvestCard, "Already harvested elsewhere — negate here (" + harvested.length + ")",
     "These search terms already have their own dedicated Exact keyword somewhere in the account, but this broader (Auto/Broad/Phrase) row hasn't been negated yet — it's still competing with its own harvested keyword and re-learning the term. Recommended: Negative Exact, scoped to this campaign.");
   if(harvested.length){
@@ -143,7 +143,7 @@ function renderReport(bulk, stRows){
   }
   root.appendChild(harvestCard);
 
-  const wasteCard = Render.el("div",{class:"card"});
+  const wasteCard = Render.el("div",{class:"card", id:"wasted-negate", "data-nav-label":"Wasted Spend"});
   Render.sectionHeader(wasteCard, "Wasted spend — negate (" + wasted.length + ")",
     "Zero orders, real spend, not already negated. Judged on dollars spent, not click volume. Recommended: Negative Exact for the specific term.");
   if(wasted.length){
@@ -161,7 +161,7 @@ function renderReport(bulk, stRows){
   root.appendChild(wasteCard);
 
   const all = [...harvested, ...wasted];
-  const exportCard = Render.el("div",{class:"card"});
+  const exportCard = Render.el("div",{class:"card", id:"export", "data-nav-label":"Export"});
   const actions = Render.el("div",{class:"section-actions"});
   actions.appendChild(Render.el("h2",{class:"section-title", style:"margin:0;", html:"Export"}));
   const btn = Render.el("button",{class:"secondary"},[]);
@@ -172,6 +172,7 @@ function renderReport(bulk, stRows){
   exportCard.appendChild(Render.el("p",{class:"section-sub", html:"Campaign, Ad Group, Negative Exact keyword text — ready to paste into a bulk upload sheet."}));
   root.appendChild(exportCard);
 
+  Render.sectionNav(root);
   root.scrollIntoView({behavior:"smooth"});
 }
 

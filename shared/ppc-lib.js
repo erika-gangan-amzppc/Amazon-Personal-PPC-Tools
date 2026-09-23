@@ -566,9 +566,11 @@ const Render = (function(){
   function el(tag, attrs, children){
     const e = document.createElement(tag);
     if(attrs) for(const k in attrs){
-      if(k==="class") e.className = attrs[k];
-      else if(k==="html") e.innerHTML = attrs[k];
-      else e.setAttribute(k, attrs[k]);
+      const v = attrs[k];
+      if(v === undefined || v === null) continue;
+      if(k==="class") e.className = v;
+      else if(k==="html") e.innerHTML = v;
+      else e.setAttribute(k, v);
     }
     (children||[]).forEach(c=>{ if(c) e.appendChild(c); });
     return e;
@@ -621,7 +623,39 @@ const Render = (function(){
     if(sub) root.appendChild(el("p",{class:"section-sub",html:sub}));
   }
 
-  return {el, kpiTile, table, doughnut, sectionHeader, get chartRefs(){return chartRefs;}, resetCharts(){ chartRefs.forEach(c=>c.destroy()); chartRefs=[]; }};
+  // Scans root for cards carrying data-nav-label (set via el(...,{id, "data-nav-label":...}))
+  // and builds a sticky jump nav from whatever actually rendered -- so a card that got
+  // skipped for missing data (e.g. no Sponsored Display) never produces a dead link.
+  function sectionNav(root){
+    const cards = Array.from(root.querySelectorAll("[data-nav-label]"));
+    if(!cards.length) return;
+    const nav = el("nav", {class:"section-nav"});
+    cards.forEach(card=>{
+      if(!card.id) return;
+      const a = el("a", {href:"#"+card.id, html:card.getAttribute("data-nav-label")});
+      a.addEventListener("click", (e)=>{
+        e.preventDefault();
+        card.scrollIntoView({behavior:"smooth", block:"start"});
+      });
+      nav.appendChild(a);
+    });
+    root.insertBefore(nav, root.firstChild);
+
+    if("IntersectionObserver" in window){
+      const links = Array.from(nav.querySelectorAll("a"));
+      const observer = new IntersectionObserver((entries)=>{
+        entries.forEach(entry=>{
+          const idx = cards.indexOf(entry.target);
+          if(idx===-1 || !entry.isIntersecting) return;
+          links.forEach(l=>l.classList.remove("active"));
+          if(links[idx]) links[idx].classList.add("active");
+        });
+      }, {rootMargin:"-15% 0px -70% 0px", threshold:0});
+      cards.forEach(c=>observer.observe(c));
+    }
+  }
+
+  return {el, kpiTile, table, doughnut, sectionHeader, sectionNav, get chartRefs(){return chartRefs;}, resetCharts(){ chartRefs.forEach(c=>c.destroy()); chartRefs=[]; }};
 })();
 
 window.PPC = {Utils, Loader, Cols, Metrics, BulkParser, SearchTermParser, Rules, Render};

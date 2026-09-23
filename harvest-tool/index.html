@@ -8,10 +8,10 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..600;1,8..60,400..500&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="../shared/theme.css?v=11">
+<link rel="stylesheet" href="../shared/theme.css?v=12">
 <style>body{visibility:hidden}</style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<script src="../shared/ppc-lib.js?v=6"></script>
+<script src="../shared/ppc-lib.js?v=7"></script>
 <script src="../shared/theme-toggle.js?v=4" defer></script>
 <script src="../shared/gate.js?v=4" defer></script>
 </head>
@@ -72,7 +72,7 @@ function renderReport(bulk, stRows){
   const promote = Rules.harvestToExactCandidates(bulk, stRows);
   const sameType = Rules.harvestSameMatchTypeCandidates(bulk, stRows);
 
-  const summaryCard = Render.el("div",{class:"card"});
+  const summaryCard = Render.el("div",{class:"card", id:"data-summary", "data-nav-label":"Data"});
   Render.sectionHeader(summaryCard, "Data loaded", "Proven = 3+ orders, more than 5 impressions and more than 5 clicks — judged per campaign/ad group/match type row, never aggregated across campaigns.");
   const grid = Render.el("div",{class:"kpi-grid"});
   grid.appendChild(Render.kpiTile("Campaigns", Utils.fmtInt(bulk.campaigns.length)));
@@ -82,7 +82,7 @@ function renderReport(bulk, stRows){
   summaryCard.appendChild(grid);
   root.appendChild(summaryCard);
 
-  const promoteCard = Render.el("div",{class:"card"});
+  const promoteCard = Render.el("div",{class:"card", id:"promote", "data-nav-label":"Promote to Exact"});
   Render.sectionHeader(promoteCard, "Strategy 1 — Promote to Exact (" + promote.length + ")",
     "Proven terms currently running in Auto/Broad/Phrase with no dedicated Exact keyword anywhere in the account. Each gets its own Exact keyword with dedicated bid and budget control.");
   if(promote.length){
@@ -99,7 +99,7 @@ function renderReport(bulk, stRows){
   }
   root.appendChild(promoteCard);
 
-  const sameTypeCard = Render.el("div",{class:"card"});
+  const sameTypeCard = Render.el("div",{class:"card", id:"same-type", "data-nav-label":"Isolate, Same Type"});
   Render.sectionHeader(sameTypeCard, "Strategy 2 — Isolate within the same match type (" + sameType.length + ")",
     "Proven Broad or Phrase terms that don't yet have their own dedicated keyword at that same match type. Gives the term its own bid and budget without necessarily tightening all the way to Exact.");
   if(sameType.length){
@@ -115,7 +115,7 @@ function renderReport(bulk, stRows){
   }
   root.appendChild(sameTypeCard);
 
-  const exportCard = Render.el("div",{class:"card"});
+  const exportCard = Render.el("div",{class:"card", id:"export", "data-nav-label":"Export"});
   const actions = Render.el("div",{class:"section-actions"});
   actions.appendChild(Render.el("h2",{class:"section-title", style:"margin:0;", html:"Export"}));
   const btn = Render.el("button",{class:"secondary"},[]);
@@ -126,6 +126,7 @@ function renderReport(bulk, stRows){
   exportCard.appendChild(Render.el("p",{class:"section-sub", html:"Campaign, Ad Group, Match Type, Keyword Text — ready to paste into a bulk upload sheet as new Keyword rows."}));
   root.appendChild(exportCard);
 
+  Render.sectionNav(root);
   root.scrollIntoView({behavior:"smooth"});
 }
 

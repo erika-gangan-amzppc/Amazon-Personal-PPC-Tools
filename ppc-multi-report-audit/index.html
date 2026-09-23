@@ -8,11 +8,11 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..600;1,8..60,400..500&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
-<link rel="stylesheet" href="../shared/theme.css?v=11">
+<link rel="stylesheet" href="../shared/theme.css?v=12">
 <style>body{visibility:hidden}</style>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
-<script src="../shared/ppc-lib.js?v=6"></script>
+<script src="../shared/ppc-lib.js?v=7"></script>
 <script src="../shared/theme-toggle.js?v=4" defer></script>
 <script src="../shared/gate.js?v=4" defer></script>
 </head>
@@ -372,11 +372,12 @@ const App = (function(){
     renderUntargetedAsins(root, untargeted, symbol);
     renderRecommendations(root, {funnel, harvest, waste, untargeted, adTypes, overview, symbol});
 
+    Render.sectionNav(root);
     root.scrollIntoView({behavior:"smooth"});
   }
 
   function renderDataSummary(root, bulk, stRows, bizRows, coverage){
-    const card = Render.el("div",{class:"card"});
+    const card = Render.el("div",{class:"card", id:"data-summary", "data-nav-label":"Data"});
     Render.sectionHeader(card, "Data loaded", "What each report contributed, and how much of ad-type spend the search term report actually covers.");
     const rows = [
       ["Bulk sheet", `${bulk.campaigns.length} campaigns, ${bulk.targets.length} keyword/targeting rows, ${bulk.productAds.length} advertised ASINs (sheets: ${bulk.sheetsUsed.join(", ")})`],
@@ -401,7 +402,7 @@ const App = (function(){
   }
 
   function renderOverview(root, brand, ov, symbol){
-    const card = Render.el("div",{class:"card"});
+    const card = Render.el("div",{class:"card", id:"overview", "data-nav-label":"Overview"});
     Render.sectionHeader(card, "Account overview", brand);
     const grid = Render.el("div",{class:"kpi-grid"});
     grid.appendChild(Render.kpiTile("PPC Spend", Utils.fmtMoney(ov.ppc.spend, symbol)));
@@ -428,8 +429,8 @@ const App = (function(){
     root.appendChild(card);
   }
 
-  function pieCard(root, title, sub, rows, valueField, canvasId, colors, headers, rowFmt){
-    const card = Render.el("div",{class:"card"});
+  function pieCard(root, title, sub, rows, valueField, canvasId, colors, headers, rowFmt, navId, navLabel){
+    const card = Render.el("div",{class:"card", id:navId, "data-nav-label":navLabel});
     Render.sectionHeader(card, title, sub);
     const tCols = headers;
     const tRows = rows.map(r=>rowFmt(r));
@@ -463,7 +464,8 @@ const App = (function(){
       ["#2f6f5e","#e0a458","#6f8fb0","#b3452c"],
       ["Ad type","Impressions","Clicks","Orders","Sales","Spend","CVR","ACOS"],
       r=>[r.key, Utils.fmtInt(r.totals.impressions), Utils.fmtInt(r.totals.clicks), Utils.fmtInt(r.totals.orders),
-          Utils.fmtMoney(r.totals.sales,symbol), Utils.fmtMoney(r.totals.spend,symbol), Utils.fmtPct(r.ratios.cvr), r.ratios.acos===Infinity?"∞":Utils.fmtPct(r.ratios.acos)]
+          Utils.fmtMoney(r.totals.sales,symbol), Utils.fmtMoney(r.totals.spend,symbol), Utils.fmtPct(r.ratios.cvr), r.ratios.acos===Infinity?"∞":Utils.fmtPct(r.ratios.acos)],
+      "ad-type", "Ad Type"
     );
   }
 
@@ -474,7 +476,8 @@ const App = (function(){
       ["#2f6f5e","#e0a458","#6f8fb0"],
       ["Targeting type","Impressions","Clicks","Orders","Sales","Spend","CVR","ACOS"],
       r=>[r.key, Utils.fmtInt(r.totals.impressions), Utils.fmtInt(r.totals.clicks), Utils.fmtInt(r.totals.orders),
-          Utils.fmtMoney(r.totals.sales,symbol), Utils.fmtMoney(r.totals.spend,symbol), Utils.fmtPct(r.ratios.cvr), r.ratios.acos===Infinity?"∞":Utils.fmtPct(r.ratios.acos)]
+          Utils.fmtMoney(r.totals.sales,symbol), Utils.fmtMoney(r.totals.spend,symbol), Utils.fmtPct(r.ratios.cvr), r.ratios.acos===Infinity?"∞":Utils.fmtPct(r.ratios.acos)],
+      "targeting-type", "Targeting"
     );
   }
 
@@ -485,10 +488,11 @@ const App = (function(){
       ["#2f6f5e","#e0a458","#6f8fb0","#b3452c","#8a6fb0"],
       ["Match type","Impressions","Clicks","Orders","Sales","Spend","CVR","ACOS"],
       r=>[r.key, Utils.fmtInt(r.totals.impressions), Utils.fmtInt(r.totals.clicks), Utils.fmtInt(r.totals.orders),
-          Utils.fmtMoney(r.totals.sales,symbol), Utils.fmtMoney(r.totals.spend,symbol), Utils.fmtPct(r.ratios.cvr), r.ratios.acos===Infinity?"∞":Utils.fmtPct(r.ratios.acos)]
+          Utils.fmtMoney(r.totals.sales,symbol), Utils.fmtMoney(r.totals.spend,symbol), Utils.fmtPct(r.ratios.cvr), r.ratios.acos===Infinity?"∞":Utils.fmtPct(r.ratios.acos)],
+      "match-type", "Match Type"
     );
 
-    const card = Render.el("div",{class:"card"});
+    const card = Render.el("div",{class:"card", id:"funnel", "data-nav-label":"Funnel"});
     Render.sectionHeader(card, "Funnel health", "How much keyword-targeted spend has actually made it to Exact — the level where you control bid and budget directly.");
     const grid = Render.el("div",{class:"kpi-grid"});
     grid.appendChild(Render.kpiTile("Exact spend share", funnel.exactSpendShare===null?"—":Utils.fmtPct(funnel.exactSpendShare)));
@@ -502,7 +506,7 @@ const App = (function(){
   }
 
   function renderSearchTermFindings(root, harvest, waste, symbol){
-    const card = Render.el("div",{class:"card"});
+    const card = Render.el("div",{class:"card", id:"search-terms", "data-nav-label":"Search Terms"});
     Render.sectionHeader(card, "Search term findings", "Proven = 3+ orders, more than 5 impressions and more than 5 clicks — judged per campaign/ad group/match type row, never aggregated across campaigns.");
 
     card.appendChild(Render.el("h3",{html:"Harvest candidates ("+harvest.length+")"}));
@@ -533,7 +537,7 @@ const App = (function(){
   }
 
   function renderUntargetedAsins(root, untargeted, symbol){
-    const card = Render.el("div",{class:"card"});
+    const card = Render.el("div",{class:"card", id:"untargeted-asins", "data-nav-label":"Untargeted ASINs"});
     Render.sectionHeader(card, "Untargeted ASIN opportunities", "ASINs from the business report generating real sales with no advertised presence anywhere in the bulk file.");
     if(untargeted === null){
       card.appendChild(Render.el("div",{class:"missing-data", html:"Not available without the business report."}));
@@ -553,7 +557,7 @@ const App = (function(){
   }
 
   function renderRecommendations(root, ctx){
-    const card = Render.el("div",{class:"card"});
+    const card = Render.el("div",{class:"card", id:"recommendations", "data-nav-label":"Recommendations"});
     Render.sectionHeader(card, "Recommendations", "Generated from what this account's own data actually shows — not a generic checklist.");
     const recs = buildRecommendations(ctx);
     const list = Render.el("ul",{class:"rec-list"});
