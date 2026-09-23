@@ -126,8 +126,17 @@ header.top .brand-mark{
 }
 header.top a.home-link{ text-decoration:none; color:inherit; display:flex; align-items:center; gap:10px; }
 header.top h1{font-family:var(--font-display); font-size:16.5px; margin:0; font-weight:700; letter-spacing:-.015em;}
-header.top .tag{color:var(--text-muted); font-size:11.5px; font-family:var(--font-mono); letter-spacing:.03em;}
-header.top .right{display:flex; align-items:center; gap:10px;}
+header.top .right{display:flex; align-items:center; gap:8px;}
+
+/* private-workspace badge */
+.ppc-badge{
+  display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 13px;
+  background:linear-gradient(135deg, var(--accent-soft), var(--accent-2-soft));
+  border:1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius:999px; color:var(--accent-strong); font-size:11px; font-weight:700;
+  font-family:var(--font-mono); letter-spacing:.04em; text-transform:uppercase;
+}
+.ppc-badge svg{ width:12px; height:12px; flex:0 0 auto; filter:drop-shadow(0 0 4px color-mix(in srgb, var(--accent) 50%, transparent)); }
 
 /* ---------------- headings / sections ---------------- */
 h2.section-title{
@@ -348,10 +357,77 @@ h3.group::after{ content:""; flex:1; height:1px; background:var(--border-soft); 
 .tool-list > li:nth-child(5) .tool{animation-delay:.23s} .tool-list > li:nth-child(n+6) .tool{animation-delay:.28s}
 
 /* ---------------- header controls (auth + theme) ---------------- */
-.ppc-logout-btn{ flex:0 0 auto; font-family:var(--font-mono); }
 .ppc-theme-btn{
-  flex:0 0 auto; width:30px; height:30px; border-radius:999px; border:1px solid var(--border);
-  background:var(--surface); color:var(--text-muted); cursor:pointer; font-size:14px; line-height:1;
-  display:flex; align-items:center; justify-content:center; transition:border-color .15s, transform .15s, background .15s;
+  flex:0 0 auto; width:34px; height:34px; border-radius:999px; border:none; cursor:pointer; padding:0;
+  display:flex; align-items:center; justify-content:center; position:relative;
+  background:linear-gradient(135deg,#ffcf70,#e0a020);
+  box-shadow:0 4px 14px -2px rgba(224,160,32,.55), inset 0 1px 1px rgba(255,255,255,.4);
+  transition:transform .25s var(--ease), box-shadow .25s var(--ease);
 }
-.ppc-theme-btn:hover{ border-color:var(--accent); color:var(--accent-strong); transform:rotate(15deg); }
+:root[data-theme="dark"] .ppc-theme-btn{
+  background:linear-gradient(135deg,#4b5fd9,#3fb6ac);
+  box-shadow:0 4px 16px -2px rgba(63,182,172,.55), inset 0 1px 1px rgba(255,255,255,.15);
+}
+.ppc-theme-btn svg{ width:17px; height:17px; color:#fff; filter:drop-shadow(0 1px 2px rgba(0,0,0,.2)); transition:transform .4s var(--ease); }
+.ppc-theme-btn:hover{ transform:translateY(-2px) scale(1.06); box-shadow:0 8px 20px -2px rgba(224,160,32,.65); }
+:root[data-theme="dark"] .ppc-theme-btn:hover{ box-shadow:0 8px 22px -2px rgba(63,182,172,.65); }
+.ppc-theme-btn:active{ transform:scale(.92); }
+.ppc-theme-btn.spin svg{ transform:rotate(180deg) scale(.6); opacity:0; }
+
+.ppc-logout-btn{
+  flex:0 0 auto; display:inline-flex; align-items:center; gap:6px; height:34px; padding:0 15px;
+  font-family:var(--font-mono); font-size:12px; font-weight:700; letter-spacing:.02em;
+  color:var(--bad); background:var(--surface); border:1.5px solid color-mix(in srgb, var(--bad) 35%, var(--border));
+  border-radius:999px; cursor:pointer; transition:background .18s var(--ease), color .18s var(--ease), transform .12s var(--ease), box-shadow .18s var(--ease);
+}
+.ppc-logout-btn svg{ width:13px; height:13px; }
+.ppc-logout-btn:hover{ background:var(--bad); color:#fff; box-shadow:0 6px 16px -4px rgba(184,64,47,.5); transform:translateY(-1px); }
+.ppc-logout-btn:active{ transform:scale(.96); }
+
+/* ---------------- password gate ---------------- */
+#ppcGateOverlay{
+  position:fixed; inset:0; z-index:9999; visibility:visible;
+  display:flex; align-items:center; justify-content:center; padding:20px;
+  background:
+    radial-gradient(700px 500px at 20% 10%, color-mix(in srgb, var(--accent) 22%, transparent) 0%, transparent 60%),
+    radial-gradient(600px 460px at 85% 90%, color-mix(in srgb, var(--accent-2) 18%, transparent) 0%, transparent 55%),
+    linear-gradient(160deg, #0a0e16 0%, #10141f 60%, #0a0e16 100%);
+}
+#ppcGateOverlay .ppc-gate-card{
+  background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:20px;
+  padding:38px 34px; max-width:360px; width:100%; box-shadow:0 30px 70px -20px rgba(0,0,0,.5), 0 2px 8px rgba(0,0,0,.2);
+  text-align:center; animation:ppcGateIn .4s var(--ease);
+}
+@keyframes ppcGateIn{ from{ opacity:0; transform:translateY(10px) scale(.97); } to{ opacity:1; transform:none; } }
+#ppcGateOverlay .ppc-gate-icon{
+  width:52px; height:52px; margin:0 auto 18px; border-radius:14px;
+  background:var(--accent-grad); display:flex; align-items:center; justify-content:center;
+  box-shadow:0 10px 24px -6px color-mix(in srgb, var(--accent) 60%, transparent);
+  animation:ppcPulseGlow 2.4s ease-in-out infinite;
+}
+@keyframes ppcPulseGlow{
+  0%,100%{ box-shadow:0 10px 24px -6px color-mix(in srgb, var(--accent) 60%, transparent); }
+  50%{ box-shadow:0 10px 32px -4px color-mix(in srgb, var(--accent) 85%, transparent); }
+}
+#ppcGateOverlay .ppc-gate-icon svg{ width:24px; height:24px; color:#fff; }
+#ppcGateOverlay h1{ font-family:var(--font-display); font-size:19px; margin:0 0 6px; letter-spacing:-.01em; font-weight:700; }
+#ppcGateOverlay p{ font-size:13px; color:var(--text-muted); margin:0 0 24px; line-height:1.5; }
+#ppcGateOverlay input{
+  width:100%; padding:12px 14px; border:1.5px solid var(--border); border-radius:10px; font-size:14px;
+  outline:none; transition:border-color .15s, box-shadow .15s; text-align:center; letter-spacing:.04em;
+  background:var(--surface-2); color:var(--text); font-family:var(--font-mono);
+}
+#ppcGateOverlay input:focus{ border-color:var(--accent); box-shadow:0 0 0 4px var(--accent-soft); }
+#ppcGateOverlay button{
+  width:100%; margin-top:12px; padding:12px; border:none; border-radius:10px;
+  background:var(--accent-grad); color:#fff; font-size:14px; font-weight:700;
+  cursor:pointer; transition:filter .15s, transform .1s, box-shadow .2s;
+  box-shadow:0 10px 24px -8px color-mix(in srgb, var(--accent) 55%, transparent);
+}
+#ppcGateOverlay button:hover{ filter:brightness(1.08); transform:translateY(-1px); }
+#ppcGateOverlay button:active{ transform:scale(.98); }
+#ppcGateOverlay .ppc-gate-error{
+  margin-top:14px; font-size:12.5px; color:var(--bad); font-weight:600; font-family:var(--font-mono);
+  animation:ppcGateShake .35s;
+}
+@keyframes ppcGateShake{ 0%,100%{transform:translateX(0);} 20%{transform:translateX(-6px);} 40%{transform:translateX(5px);} 60%{transform:translateX(-3px);} 80%{transform:translateX(2px);} }
