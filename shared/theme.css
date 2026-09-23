@@ -296,13 +296,6 @@ footer{text-align:center; color:var(--text-faint); font-size:11.5px; padding:36p
 }
 .hero h1 em{ font-family:var(--font-serif); font-style:italic; font-weight:500; color:var(--accent-strong); }
 .hero p.sub{color:var(--text-muted); margin:0 0 8px; font-size:15.5px; max-width:600px; line-height:1.6; animation:ppcRise .55s var(--ease) .12s backwards;}
-.hero .stat-row{display:flex; gap:28px; margin-top:26px; flex-wrap:wrap; animation:ppcRise .55s var(--ease) .18s backwards;}
-.hero .stat b{
-  display:block; font-family:var(--font-mono); font-size:26px; font-weight:600; letter-spacing:-.01em; color:var(--text);
-  font-variant-numeric:tabular-nums;
-}
-.hero .stat span{font-size:11px; color:var(--text-muted); text-transform:uppercase; letter-spacing:.05em; font-weight:600; font-family:var(--font-mono);}
-
 h3.group{
   font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-faint); margin:42px 0 14px; font-weight:700;
   font-family:var(--font-mono); display:flex; align-items:center; gap:10px;
