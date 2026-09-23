@@ -15,8 +15,8 @@
 
 const KEY = "ppc_theme";
 
-const ICON_SUN = '<svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.6" fill="currentColor"/><g stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 2.5v2.6M12 18.9v2.6M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12h2.6M18.9 12h2.6M4.2 19.8L6 18M18 6l1.8-1.8"/></g></svg>';
-const ICON_MOON = '<svg viewBox="0 0 24 24" fill="none"><path d="M20.2 14.6A8.4 8.4 0 1 1 9.4 3.8a6.9 6.9 0 0 0 10.8 10.8Z" fill="currentColor"/><path d="M17.5 2.5l.55 1.3 1.3.55-1.3.55-.55 1.3-.55-1.3-1.3-.55 1.3-.55.55-1.3Z" fill="currentColor"/></svg>';
+const ICON_SUN = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.6" fill="currentColor"/><g stroke="currentColor" stroke-width="2.1" stroke-linecap="round"><path d="M12 2.5v2.6M12 18.9v2.6M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2.5 12h2.6M18.9 12h2.6M4.2 19.8L6 18M18 6l1.8-1.8"/></g></svg>';
+const ICON_MOON = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M20.2 14.6A8.4 8.4 0 1 1 9.4 3.8a6.9 6.9 0 0 0 10.8 10.8Z" fill="currentColor"/><path d="M17.5 2.5l.55 1.3 1.3.55-1.3.55-.55 1.3-.55-1.3-1.3-.55 1.3-.55.55-1.3Z" fill="currentColor"/></svg>';
 
 function getPreferred(){
   try{

@@ -23,8 +23,8 @@
 const STORAGE_KEY = "ppc_tools_unlocked_v1";
 const PASSWORD_HASH = "fb3bb8fc05da968868e8cadd1fb657978faabeeec7ecfc6b8ccaa28ba6fef699";
 
-const ICON_LOCK = '<svg viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2.5" fill="currentColor"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>';
-const ICON_LOGOUT = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><polyline points="15 17 20 12 15 7"/><line x1="20" y1="12" x2="8" y2="12"/></svg>';
+const ICON_LOCK = '<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2.5" fill="currentColor"/><path d="M8 11V7.5a4 4 0 0 1 8 0V11" stroke="currentColor" stroke-width="2.2" fill="none" stroke-linecap="round"/></svg>';
+const ICON_LOGOUT = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3"/><polyline points="15 17 20 12 15 7"/><line x1="20" y1="12" x2="8" y2="12"/></svg>';
 
 async function sha256(text){
   const enc = new TextEncoder().encode(text);
